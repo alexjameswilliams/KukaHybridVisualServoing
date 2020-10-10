@@ -88,11 +88,46 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         jointPositions = [0.0, 0.0, 0.000000, 0.0, 0.000000, 0.0, 0.0]
         for jointIndex in range(p.getNumJoints(self._kuka)):
             p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
+        self.setKukaJointAngles(jointPositions)
 
         self._envStepCounter = 0
         p.stepSimulation()
         self._observation = self.getObservation()
         return np.array(self._observation)
+
+    @property
+    # Returns the Kuka's current joint state including Position, Velocity,
+    # reaction forces and applied motor torque
+    def getKukaJointStates(self):
+        numJoints = p.getNumJoints(self._kuka)
+
+        return p.getJointStates(range(numJoints))
+
+    @property
+    # Returns the lower and upper joint limits for each joint on the iiwa in radians as two arrays
+    def getKukaJointLimits(self):
+        numJoints = p.getNumJoints(self._kuka)
+
+        lowerLimits = []
+        upperLimits = []
+        for joint in range(numJoints):
+            info = p.getJointInfo(self._kuka, joint)
+            lowerLimits.append(info[8])
+            upperLimits.append(info[9])
+
+        return lowerLimits, upperLimits
+
+
+    # Set the joint angles of the kuka robot
+    # jointPositions should be in radians
+    def setKukaJointAngles(self, jointPositions):
+        if len(jointPositions) != p.getNumJoints(self._kuka)
+            return false
+        else:
+            p.setJointMotorControlArray(self._kuka, range(p.getNumJoints(self._kuka)), p.POSITION_CONTROL,
+                                        jointPositions)
+            return true
+
 
 
     def getObservation(self):
@@ -127,6 +162,8 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         return self._observation
 
     def step(self, action):
+        jointPositions = action
+        self.setKukaJointAngles(jointPositions)
         p.stepSimulation()
 
     def _termination(self):
