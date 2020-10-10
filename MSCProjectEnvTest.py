@@ -7,16 +7,20 @@ def main():
 
     # Add joint parameter controls
     lowerLimits, upperLimits = env.getKukaJointLimits
-    motorsIds = []
+    controlIds = []
     for jointIndex in range(len(lowerLimits)):
-        motorsIds.append(env._p.addUserDebugParameter("A", np.rad2deg(lowerLimits[jointIndex]),-np.rad2deg(lowerLimits[jointIndex]),0))
+        controlIds.append(env._p.addUserDebugParameter("A", np.rad2deg(lowerLimits[jointIndex]),-np.rad2deg(lowerLimits[jointIndex]),0))
+
+    controlIds.append(env._p.addUserDebugParameter("Target X", -500,+500,0))
+    controlIds.append(env._p.addUserDebugParameter("Target Y", -500, +500, 0))
+
 
     done = False
     while (not done):
 
         action = []
-        for motorId in motorsIds:
-            action.append(np.deg2rad(env._p.readUserDebugParameter(motorId)))
+        for controlId in controlIds:
+            action.append(np.deg2rad(env._p.readUserDebugParameter(controlId)))
 
         env.step(action)
         #state, reward, done, info = environment.step(action)

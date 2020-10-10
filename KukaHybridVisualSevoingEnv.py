@@ -90,6 +90,9 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
         self.setKukaJointAngles(jointPositions)
 
+        self.target = False
+        self.target = self.generateTarget(0,0)
+
         self._envStepCounter = 0
         p.stepSimulation()
         self._observation = self.getObservation()
@@ -193,9 +196,10 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         return self._observation
 
     def step(self, action):
-        jointPositions = action
+        jointPositions = action[0:6]
         self.setKukaJointAngles(jointPositions)
         self.kuka_camera()
+        self.generateTarget(action[7],action[8])
         p.stepSimulation()
 
     def _termination(self):
@@ -213,3 +217,27 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+
+    # Based on https://towardsdatascience.com/simulate-images-for-ml-in-pybullet-the-quick-easy-way-859035b2c9dd
+    def generateTarget(self, x, y):
+        # todo may need to change urdf file to something else. See here: https://github.com/bulletphysics/bullet3/tree/master/data
+
+        if self.target:
+            p.removeBody(self.target)
+
+        visualShapeId = p.createVisualShape(
+            shapeType=p.GEOM_MESH,
+            fileName='target_plane.obj',
+            rgbaColor=[1,1,1,1],
+            meshScale=[0.01, 0.01, 0.01])
+
+
+        multiBodyId = p.createMultiBody(
+            baseVisualShapeIndex=visualShapeId,
+            basePosition=[x, y, 0.0],
+            baseOrientation=p.getQuaternionFromEuler([0, 0, 0]))
+
+        textureId = p.loadTexture('circular_target.png')
+        p.changeVisualShape(multiBodyId, -1, textureUniqueId=textureId)
+
+        return multiBodyId
