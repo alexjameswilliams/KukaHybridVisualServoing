@@ -106,11 +106,10 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     @property
     # Returns the lower and upper joint limits for each joint on the iiwa in radians as two arrays
     def getKukaJointLimits(self):
-        numJoints = p.getNumJoints(self._kuka)
 
         lowerLimits = []
         upperLimits = []
-        for joint in range(numJoints):
+        for joint in range(p.getNumJoints(self._kuka)):
             info = p.getJointInfo(self._kuka, joint)
             lowerLimits.append(info[8])
             upperLimits.append(info[9])
@@ -121,12 +120,23 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     # Set the joint angles of the kuka robot
     # jointPositions should be in radians
     def setKukaJointAngles(self, jointPositions):
-        if len(jointPositions) != p.getNumJoints(self._kuka)
-            return false
+
+        # Check number of joint inputs is correct
+        if len(jointPositions) != p.getNumJoints(self._kuka):
+            return False
         else:
+            # Check inputs are within maximum and minimum joint limits and amend if necessary
+            lowerLimits, upperLimits = self.getKukaJointLimits
+            for joint in range(p.getNumJoints(self._kuka)):
+                if jointPositions[joint] < lowerLimits[joint]:
+                    jointPositions[joint] = lowerLimits[joint]
+
+                elif jointPositions[joint] > upperLimits[joint]:
+                    jointPositions[joint] = upperLimits[joint]
+
             p.setJointMotorControlArray(self._kuka, range(p.getNumJoints(self._kuka)), p.POSITION_CONTROL,
                                         jointPositions)
-            return true
+            return True
 
 
     # Get a camera image from end of Kuka robot
