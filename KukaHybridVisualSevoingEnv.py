@@ -129,6 +129,27 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             return true
 
 
+    # Get a camera image from end of Kuka robot
+    # Credit: https://github.com/bulletphysics/bullet3/issues/1616
+    def kuka_camera(self):
+
+        fov, aspect, nearplane, farplane = 60, 1.0, 0.01, 100
+        projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, nearplane, farplane)
+
+        # Center of mass position and orientation (of link-7)
+        com_p, com_o, _, _, _, _ = p.getLinkState(self._kuka, 6, computeForwardKinematics=True)
+        rot_matrix = p.getMatrixFromQuaternion(com_o)
+        rot_matrix = np.array(rot_matrix).reshape(3, 3)
+        # Initial vectors
+        init_camera_vector = (0, 0, 1)  # z-axis
+        init_up_vector = (0, 1, 0)  # y-axis
+        # Rotated vectors
+        camera_vector = rot_matrix.dot(init_camera_vector)
+        up_vector = rot_matrix.dot(init_up_vector)
+        view_matrix = p.computeViewMatrix(com_p, com_p + 0.1 * camera_vector, up_vector)
+        img = p.getCameraImage(1000, 1000, view_matrix, projection_matrix)
+        return img
+
 
     def getObservation(self):
         camEyePos = [0.03, 0.236, 0.54]
@@ -164,6 +185,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     def step(self, action):
         jointPositions = action
         self.setKukaJointAngles(jointPositions)
+        self.kuka_camera()
         p.stepSimulation()
 
     def _termination(self):

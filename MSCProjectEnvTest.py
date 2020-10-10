@@ -22,5 +22,10 @@ def main():
         #state, reward, done, info = environment.step(action)
         #obs = environment.getObservation()
 
+
+def getKukaJointVelocityLimits():
+    return np.array([98,98,100,130,140,180,180])
+
+
 if __name__ == "__main__":
     main()
