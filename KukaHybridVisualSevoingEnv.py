@@ -90,8 +90,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
         self.setKukaJointAngles(jointPositions)
 
-        self.target = False
-        self.target = self.generateTarget(0,0)
+        self.target_id = self.generateTarget()
 
         self._envStepCounter = 0
         p.stepSimulation()
@@ -118,7 +117,6 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             upperLimits.append(info[9])
 
         return lowerLimits, upperLimits
-
 
     # Set the joint angles of the kuka robot
     # jointPositions should be in radians
@@ -196,10 +194,9 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         return self._observation
 
     def step(self, action):
-        jointPositions = action[0:6]
+        jointPositions = action
         self.setKukaJointAngles(jointPositions)
         self.kuka_camera()
-        self.generateTarget(action[7],action[8])
         p.stepSimulation()
 
     def _termination(self):
@@ -218,26 +215,38 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    # Based on https://towardsdatascience.com/simulate-images-for-ml-in-pybullet-the-quick-easy-way-859035b2c9dd
-    def generateTarget(self, x, y):
-        # todo may need to change urdf file to something else. See here: https://github.com/bulletphysics/bullet3/tree/master/data
+    # Generate random coordinates for the episodic target and place as a flat urdf model in environment
+    def generateTarget(self):
 
-        if self.target:
-            p.removeBody(self.target)
+        # Generate 4 random numbers to choose 2 for the x and y coordinates of the target
+        # This is to avoid the robots base and ensure targets are within robot's reach
+        kuka_min_range = .420  # approximation based on robot documentation
+        kuka_max_range = .800  # approximation based on robot documentation
+        ranges = np.random.uniform(kuka_min_range, kuka_max_range, 4)
+        x_ranges = np.stack((ranges[0], -ranges[1]))
+        y_ranges = np.stack((ranges[2], -ranges[3]))
+        target_x = np.random.choice(x_ranges)
+        target_y = np.random.choice(y_ranges)
+        self.target_position = [target_x,target_y]
 
+        print('target pos = ' + str(np.multiply(self.target_position,1000)))
+
+        # Load URDF file and colour
         visualShapeId = p.createVisualShape(
             shapeType=p.GEOM_MESH,
-            fileName='target_plane.obj',
-            rgbaColor=[1,1,1,1],
-            meshScale=[0.01, 0.01, 0.01])
+            fileName='target.obj',
+            rgbaColor=[1,0,0,1], # red
+            meshScale=[1, 1, 1])
 
-
-        multiBodyId = p.createMultiBody(
+        # Place object at generated coordinates
+        target_id = p.createMultiBody(
             baseVisualShapeIndex=visualShapeId,
-            basePosition=[x, y, 0.0],
-            baseOrientation=p.getQuaternionFromEuler([0, 0, 0]))
+            basePosition=[target_x, target_y, 0.0001],
+            baseOrientation=p.getQuaternionFromEuler([np.deg2rad(90), 0, 0]))
 
-        textureId = p.loadTexture('circular_target.png')
-        p.changeVisualShape(multiBodyId, -1, textureUniqueId=textureId)
+        return target_id
 
-        return multiBodyId
+
+            baseVisualShapeIndex=visualShapeId,
+
+

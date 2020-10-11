@@ -11,9 +11,6 @@ def main():
     for jointIndex in range(len(lowerLimits)):
         controlIds.append(env._p.addUserDebugParameter("A", np.rad2deg(lowerLimits[jointIndex]),-np.rad2deg(lowerLimits[jointIndex]),0))
 
-    controlIds.append(env._p.addUserDebugParameter("Target X", -500,+500,0))
-    controlIds.append(env._p.addUserDebugParameter("Target Y", -500, +500, 0))
-
 
     done = False
     while (not done):
