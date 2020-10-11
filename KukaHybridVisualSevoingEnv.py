@@ -90,6 +90,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
         self.setKukaJointAngles(jointPositions)
 
+        self.floor_id = self.generateFloor()
         self.target_id = self.generateTarget()
 
         self._envStepCounter = 0
@@ -246,7 +247,22 @@ class KukaHybridVisualSevoingEnv(gym.Env):
 
         return target_id
 
+    # Load floor urdf file and place in environment
+    def generateFloor(self):
 
+        # Load URDF file and colour
+        visualShapeId = p.createVisualShape(
+            shapeType=p.GEOM_MESH,
+            fileName='floor.obj',
+            rgbaColor=[0.6, 0.6, 0.6, 1], # grey
+            meshScale=[1, 1, 1])
+
+        # Place object
+        floor = p.createMultiBody(
             baseVisualShapeIndex=visualShapeId,
+            basePosition=[0,0,0],
+            baseOrientation=p.getQuaternionFromEuler([np.deg2rad(90), 0, 0]))
+
+        return floor
 
 
