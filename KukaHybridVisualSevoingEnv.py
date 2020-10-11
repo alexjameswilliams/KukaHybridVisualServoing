@@ -193,9 +193,6 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         self.kuka_camera()
         p.stepSimulation()
 
-    def _termination(self):
-        return
-
     def render(self, mode='human'):
         return
 
