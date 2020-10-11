@@ -79,17 +79,10 @@ class KukaHybridVisualSevoingEnv(gym.Env):
 
         p.setGravity(0, 0, -10)
 
-        # Load KUKA iiwa Model
-        start_pos = [0, 0, 0.001]
-        start_orientation = p.getQuaternionFromEuler([0, 0, 0])
-        self._kuka = p.loadURDF("kuka_iiwa/model.urdf", start_pos, start_orientation)
 
-        # Set KUKA Joint angles
-        jointPositions = [0.0, 0.0, 0.000000, 0.0, 0.000000, 0.0, 0.0]
-        for jointIndex in range(p.getNumJoints(self._kuka)):
-            p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
-        self.setKukaJointAngles(jointPositions)
 
+        # Load objects
+        self.generateRobot()
         self.floor_id = self.generateFloor()
         self.target_id = self.generateTarget()
 
@@ -264,5 +257,17 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             baseOrientation=p.getQuaternionFromEuler([np.deg2rad(90), 0, 0]))
 
         return floor
+
+    def generateRobot(self):
+        # Load KUKA iiwa Model
+        start_pos = [0, 0, 0]
+        start_orientation = p.getQuaternionFromEuler([0, 0, 0])
+        self._kuka = p.loadURDF("kuka_iiwa/model.urdf", start_pos, start_orientation)
+
+        # Set KUKA Joint angles
+        jointPositions = [0.0, 0.0, 0.000000, 0.0, 0.000000, 0.0, 0.0]
+        for jointIndex in range(p.getNumJoints(self._kuka)):
+            p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
+        self.setKukaJointAngles(jointPositions)
 
 
