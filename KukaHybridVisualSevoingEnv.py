@@ -9,8 +9,6 @@ import gym
 from gym.utils import seeding
 from gym import spaces
 
-maxSteps = 1000
-
 RENDER_HEIGHT = 720
 RENDER_WIDTH = 960
 
@@ -25,6 +23,8 @@ class KukaHybridVisualSevoingEnv(gym.Env):
                  renders=False,
                  isDiscrete=False):
         self._timeStep = 1. / 240.
+        self._simulationStepsPerTimeStep = 24
+        self.max_steps = 100
         self._urdfRoot = urdfRoot
         self._actionRepeat = actionRepeat
         self._isEnableSelfCollision = isEnableSelfCollision
@@ -76,10 +76,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         # p.setPhysicsEngineParameter(numSolverIterations=150)
         p.setTimeStep(self._timeStep)
         p.loadURDF(os.path.join(self._urdfRoot, "plane.urdf"), [0, 0, -1])
-
         p.setGravity(0, 0, -10)
-
-
 
         # Load objects
         self.generateRobot()
@@ -217,23 +214,28 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         return observation
 
 
+    # Advance simulation and collect observation, reward, and termination data
     def step(self, action):
+
         jointPositions = action
         self.setKukaJointAngles(jointPositions)
-        p.stepSimulation()
+        for step in range(0, self._simulationStepsPerTimeStep, 1):
+            p.stepSimulation()
 
+        self._envStepCounter += 1
+        done = self._termination()
         observation = self.getObservation()
         reward = self._reward()
-        done = self._termination()
 
-        return np.array(self._observation), reward, done
+        return observation, reward, done
 
     def render(self, mode='human'):
         return
 
-    # Termination on collision, goal achievement, or run out of time
+    # Checks if a condition for termination has been met
+    # Termination can be triggered by collision, goal achievement, or when the maximum number of steps have been reached
     def _termination(self):
-        if (self.terminated):
+        if (self.terminated or self._envStepCounter > self.max_steps):
             return True
         return False
 
