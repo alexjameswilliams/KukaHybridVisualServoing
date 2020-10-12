@@ -20,7 +20,13 @@ def main():
             action.append(np.deg2rad(env._p.readUserDebugParameter(controlId)))
 
         state, reward, done = env.step(action)
-        #obs = environment.getObservation()
+        print('STATE')
+        print(state)
+        print('REWARD')
+        print(reward)
+
+        if done:
+            print('TERMINATED')
 
 
 def getKukaJointVelocityLimits():
