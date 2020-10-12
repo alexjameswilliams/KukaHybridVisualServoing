@@ -19,8 +19,7 @@ def main():
         for controlId in controlIds:
             action.append(np.deg2rad(env._p.readUserDebugParameter(controlId)))
 
-        env.step(action)
-        #state, reward, done, info = environment.step(action)
+        state, reward, done = env.step(action)
         #obs = environment.getObservation()
 
 

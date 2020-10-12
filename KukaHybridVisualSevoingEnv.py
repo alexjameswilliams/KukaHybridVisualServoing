@@ -34,7 +34,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         self._width = 341
         self._height = 256
         self._isDiscrete = isDiscrete
-        self.terminated = 0
+        self.terminated = False
         self._p = p
         if self._renders:
             cid = p.connect(p.SHARED_MEMORY)
@@ -71,7 +71,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     # Initialise Environment
     def reset(self):
 
-        self.terminated = 0
+        self.terminated = False
         p.resetSimulation()
         # p.setPhysicsEngineParameter(numSolverIterations=150)
         p.setTimeStep(self._timeStep)
@@ -193,13 +193,41 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         self.kuka_camera()
         p.stepSimulation()
 
+        observation = self.getObservation()
+        reward = self._reward()
+        done = self._termination()
+
+        return np.array(self._observation), reward, done
     def render(self, mode='human'):
         return
 
+    # Termination on collision, goal achievement, or run out of time
     def _termination(self):
-        return
+        if (self.terminated):
+            return True
+        return False
 
-    def _reward(selfself):
+    # Reward Function has 5 possible subfunctions which are incorporated depending on sparseness of reward signal
+    # These subfunctions can be activated by setting the following flags
+    # rGoal: Binary reward signal of whether reward achieved or not
+    # rCollision: Binary reward signal of whether collision detected
+    # rTime: Incremental penalty for each timestep within allowed timelimit
+    # rTranslation: Incremental Reward for translation towards target position
+    # rRotation: Incremental penalty for deviation from target orientation
+
+    # By default, rGoal, rCollision, and rTime are enabled and rTranslation and rRotation are disabled
+    def _reward(self, rGoal=True, rCollision=True, rTime=True, rRotation=False, rTranslation=False):
+
+        # rGoal
+        # rCollision
+
+        # 1) Check if collision detected
+        contact = p.getContactPoints(self._kuka,self.floor_id)
+        if contact:
+            # if detected then end simulation and return negative reward
+            self.terminated = True
+            reward = -1
+
         return
 
     def seed(self, seed=None):
@@ -247,8 +275,15 @@ class KukaHybridVisualSevoingEnv(gym.Env):
             rgbaColor=[0.6, 0.6, 0.6, 1], # grey
             meshScale=[1, 1, 1])
 
-        # Place object
+        # Ensure floor can be collided with
+        collisionShapeId = p.createCollisionShape(
+            shapeType=p.GEOM_MESH,
+            fileName='floor.obj',
+            meshScale=[1, 1, 1])
+
+        # Merge collision and visual profile and place object
         floor = p.createMultiBody(
+            baseCollisionShapeIndex=collisionShapeId,
             baseVisualShapeIndex=visualShapeId,
             basePosition=[0,0,0],
             baseOrientation=p.getQuaternionFromEuler([np.deg2rad(90), 0, 0]))
