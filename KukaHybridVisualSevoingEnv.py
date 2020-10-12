@@ -133,7 +133,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
                                         jointPositions)
             return True
 
-    # Get a camera image from end of Kuka robot
+    # Returns an RGB image from the Eye In Hand camera on the robot's end effector
     # Credit: https://github.com/bulletphysics/bullet3/issues/1616
     def _getEyeInHandCamera(self):
 
@@ -154,7 +154,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         img = p.getCameraImage(1000, 1000, view_matrix, projection_matrix)
         return img
 
-
+    # Returns an RGB image from the Eye To Hand camera
     def _getEyeToHandCamera(self):
 
         camEyePos = [0.03, 0.236, 0.54]
@@ -187,11 +187,11 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         return np_img_arr
 
 
-    # Observation consists of four components which are returned collected and returned via this function
-    # image_eih
-    # image_eth
-    # joint_positions
-    # joint_velocities
+    # Observation consists of four components which are collected and returned via this function.
+    # image_eih: Camera image from robot's end effector (Eye In Hand)
+    # image_eth: Camera image overlooking scene (Eye to Hand)
+    # joint_positions: Robot joint positions
+    # joint_velocities: Robot joint velocities
     def getObservation(self):
 
         observation = []
