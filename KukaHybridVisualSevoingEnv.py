@@ -12,6 +12,10 @@ from gym import spaces
 RENDER_HEIGHT = 720
 RENDER_WIDTH = 960
 
+#todo verify ranges in simulation and minimum height
+KUKA_MIN_RANGE = .400  # approximation based on robot documentation
+KUKA_MAX_RANGE = .800  # approximation based on robot documentation
+
 
 class KukaHybridVisualSevoingEnv(gym.Env):
 
@@ -236,6 +240,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     # Termination can be triggered by collision, goal achievement, or when the maximum number of steps have been reached
     def _termination(self):
         if (self.terminated or self._envStepCounter > self.max_steps):
+            self.terminated = True
             return True
         return False
 
@@ -250,17 +255,100 @@ class KukaHybridVisualSevoingEnv(gym.Env):
     # By default, rGoal, rCollision, and rTime are enabled and rTranslation and rRotation are disabled
     def _reward(self, rGoal=True, rCollision=True, rTime=True, rRotation=False, rTranslation=False):
 
-        # rGoal
-        # rCollision
+        max_goal_magnitude = 1.0
+        reward = 0.0
+        if rGoal:
+            self.translational_tolerance = 0.001 # 1mm
+            self.angular_tolerance = 1.0 # 1 degree
+            self.vertical_distance = 0.05 # 5cm
 
-        # 1) Check if collision detected
-        contact = p.getContactPoints(self._kuka,self.floor_id)
-        if contact:
-            # if detected then end simulation and return negative reward
-            self.terminated = True
-            reward = -1
+            # 1) Calculate Kuka End Effector position and orientation (link 7)
+            effector_position, effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6, computeForwardKinematics=True)
 
-        return
+            # 2) Retrieve Target Position
+            target_position, target_orientation = p.getBasePositionAndOrientation(self.target_id)
+            target_position = np.asarray(target_position)
+            target_position[2] = target_position[2] + self.vertical_distance
+
+            # 3) Calculate Euclidean distance between end effector and target
+            distance = np.linalg.norm(target_position-np.asarray(effector_position))
+            # print('Distance = ' + str(distance))
+
+            # 4) Calculate orientation matrix between effector orientation and target orientation
+            target_orientation = np.array(p.getEulerFromQuaternion(target_orientation))
+            target_orientation[0] += np.deg2rad(90)
+            target_orientation = p.getQuaternionFromEuler(target_orientation)
+            orientation_diff = p.getDifferenceQuaternion(target_orientation, effector_orientation)
+
+            # 5) Calculate cumulative rotational error
+            orientation_diff = p.getEulerFromQuaternion(orientation_diff)
+            cumulative_error = 0
+            for orientation in orientation_diff:
+                cumulative_error += np.abs(orientation)
+
+            # 6) Check if within dimensional tolerances, if true then goal achieved
+            if (np.abs(distance) <= self.translational_tolerance) and (cumulative_error <= self.angular_tolerance):
+                print('Goal Achieved')
+                reward += max_goal_magnitude
+                self.terminated = True
+
+
+        if rTime and self.terminated:
+            # 1) Reduce maximum reward by an amount proportional to the number of timesteps
+            reward += -((max_goal_magnitude / self.max_steps) * self._envStepCounter)
+
+
+        if rCollision:
+            # 1) Check if collision detected
+            contact = p.getContactPoints(self._kuka,self.floor_id)
+            if contact:
+                # 2) if detected then end simulation and return maximum penalty
+                print('Collision Detected')
+                reward = -max_goal_magnitude
+                self.terminated = True
+
+
+        if rTranslation and not self.terminated:
+            # 1) Calculate Kuka End Effector position and orientation (link 7)
+            #todo possibly link in to rGoal to avoid calling twice
+            effector_position, _, _, _, _, _ = p.getLinkState(self._kuka, 6, computeForwardKinematics=True)
+
+            # 2) Retrieve Target Position
+            target_position, _ = p.getBasePositionAndOrientation(self.target_id)
+            target_position = np.asarray(target_position)
+            target_position[2] = target_position[2] + self.vertical_distance
+
+            # 3) Calculate Euclidean distance between end effector and target
+            distance = np.linalg.norm(target_position - np.asarray(effector_position))
+
+            # 4) Return up to 0.4 of maximum reward until within tolerance range
+            max_possible_distance = (2 * KUKA_MAX_RANGE) - self.translational_tolerance #todo this may be a bit of a blunt implementation - better heuristic?
+            reward = 0.4 * max_goal_magnitude * ((max_possible_distance - np.abs(distance) + self.tolerance) / max_possible_distance)
+            if reward > 0.4 * max_goal_magnitude:
+                reward += 0.4 * max_goal_magnitude
+
+
+
+        if rRotation and not self.terminated:
+            # 1) Calculate orientation matrix between effector orientation and target orientation
+            target_orientation = np.array(p.getEulerFromQuaternion(target_orientation))
+            target_orientation[0] += np.deg2rad(90)
+            target_orientation = p.getQuaternionFromEuler(target_orientation)
+            orientation_diff = p.getDifferenceQuaternion(target_orientation, effector_orientation)
+
+            # 2) Calculate cumulative rotational error
+            orientation_diff = p.getEulerFromQuaternion(orientation_diff)
+            cumulative_error = 0
+            for orientation in orientation_diff:
+                cumulative_error += np.abs(orientation)
+
+            # 4) Return up to 0.4 of maximum reward until within tolerance range
+            max_possible_rotation = (2 * 180) - self.angular_tolerance  # todo this may be a bit of a blunt implementation - better heuristic?
+            reward = 0.4 * max_goal_magnitude * ((max_possible_rotation - np.abs(cumulative_error) + self.angular_tolerance) / max_possible_rotation)
+            if reward > 0.4 * max_goal_magnitude:
+                reward += 0.4 * max_goal_magnitude
+
+        return reward
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
@@ -271,9 +359,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
 
         # Generate 4 random numbers to choose 2 for the x and y coordinates of the target
         # This is to avoid the robots base and ensure targets are within robot's reach
-        kuka_min_range = .420  # approximation based on robot documentation
-        kuka_max_range = .800  # approximation based on robot documentation
-        ranges = np.random.uniform(kuka_min_range, kuka_max_range, 4)
+        ranges = np.random.uniform(KUKA_MIN_RANGE, KUKA_MAX_RANGE, 4)
         x_ranges = np.stack((ranges[0], -ranges[1]))
         y_ranges = np.stack((ranges[2], -ranges[3]))
         target_x = np.random.choice(x_ranges)
