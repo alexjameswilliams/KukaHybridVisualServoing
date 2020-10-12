@@ -133,10 +133,9 @@ class KukaHybridVisualSevoingEnv(gym.Env):
                                         jointPositions)
             return True
 
-
     # Get a camera image from end of Kuka robot
     # Credit: https://github.com/bulletphysics/bullet3/issues/1616
-    def kuka_camera(self):
+    def _getEyeInHandCamera(self):
 
         fov, aspect, nearplane, farplane = 60, 1.0, 0.01, 100
         projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, nearplane, farplane)
@@ -156,7 +155,8 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         return img
 
 
-    def getObservation(self):
+    def _getEyeToHandCamera(self):
+
         camEyePos = [0.03, 0.236, 0.54]
         distance = 1.06
         pitch = -56
@@ -184,13 +184,42 @@ class KukaHybridVisualSevoingEnv(gym.Env):
                                    projectionMatrix=projMatrix)
         rgb = img_arr[2]
         np_img_arr = np.reshape(rgb, (self._height, self._width, 4))
-        self._observation = np_img_arr
-        return self._observation
+        return np_img_arr
+
+
+    # Observation consists of four components which are returned collected and returned via this function
+    # image_eih
+    # image_eth
+    # joint_positions
+    # joint_velocities
+    def getObservation(self):
+
+        observation = []
+        positions = []
+        velocities = []
+
+        # Get camera observation data
+        image_eih = self._getEyeInHandCamera()
+        image_eth = self._getEyeToHandCamera()
+
+        # Get robotic joints observation data
+        jointRange = np.arange(0, p.getNumJoints(self._kuka))
+        jointStates = p.getJointStates(self._kuka, jointRange)
+        for joint in jointStates:
+            positions.append(joint[0])
+            velocities.append(joint[1])
+
+        observation.append(image_eih)
+        observation.append(image_eth)
+        observation.append(positions)
+        observation.append(velocities)
+
+        return observation
+
 
     def step(self, action):
         jointPositions = action
         self.setKukaJointAngles(jointPositions)
-        self.kuka_camera()
         p.stepSimulation()
 
         observation = self.getObservation()
@@ -198,6 +227,7 @@ class KukaHybridVisualSevoingEnv(gym.Env):
         done = self._termination()
 
         return np.array(self._observation), reward, done
+
     def render(self, mode='human'):
         return
 
