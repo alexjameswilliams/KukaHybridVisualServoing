@@ -30,6 +30,11 @@ NORMALIZED_INPUT_RANGE = 5
 env = None
 def main():
     collect_steps_per_iteration = 20  # @param {type:"integer"}
+    # Model Hyperparameters
+    eih_input = True,   # Set to true to include input from EIH Camera in environment / network
+    eth_input = True,   # Set to true to include input from ETH Camera in environment / network
+    position_input = True,  # Set to true to include input from position sensors in environment / network
+    velocity_input = True,  # Set to true to include input from velocity sensors in environment / network
     eih_resolution = SD_IMAGE_RESOLUTION,
     eth_resolution = SD_IMAGE_RESOLUTION,
     img_channels = RGB,
@@ -45,8 +50,9 @@ def main():
     normalize_observations = True
 
     # Initialise Environment
-    environment = KukaHybridVisualServoingEnv(renders=True, isDiscrete=False, eih_camera_resolution=eih_resolution,
-                                              eth_camera_resolution=eth_resolution, image_depth=img_channels,
+    environment = KukaHybridVisualServoingEnv(renders=True, isDiscrete=False,
+                                              eih_input=eih_input, eth_input=eth_input, position_input=position_input, velocity_input=velocity_input,
+                                              eih_camera_resolution=eih_resolution, eth_camera_resolution=eth_resolution, image_depth=img_channels,
                                               steps=collect_steps_per_iteration)
 
     # Add joint parameter controls (for manual debugging)
@@ -85,14 +91,21 @@ def main():
         [Dense(32, activation='relu', bias_initializer='zeros', kernel_initializer='random_normal'),
          Dense(32, activation='relu', bias_initializer='zeros', kernel_initializer='random_normal')])
 
+    # Add each relevant input to network 
+    preprocessing_layers = {}
+    if eih_input:
+        preprocessing_layers.update({'eih_image': eih_img_pre_processing_layers})
+
+    if eth_input:
+        preprocessing_layers.update({'eth_image': eth_img_pre_processing_layers})
+
+    if position_input:
+        preprocessing_layers.update({'joint_positions': joints_pre_processing_layers})
+
+    if velocity_input:
+        preprocessing_layers.update({'joint_velocities': velocities_pre_processing_layers})
+
     # Combine all Network Inputs Together
-    #todo amend this to accoutn for different input combos
-    preprocessing_layers = {
-        'eih_image': eih_img_pre_processing_layers,
-        'eth_image': eth_img_pre_processing_layers,
-        'joint_positions': joints_pre_processing_layers,
-        'joint_velocities': velocities_pre_processing_layers,
-    }
     preprocessing_combiner = tf.keras.layers.Concatenate(axis=-1)
 
     # Create Actor Network
