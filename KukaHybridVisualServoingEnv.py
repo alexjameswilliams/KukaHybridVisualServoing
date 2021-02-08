@@ -174,8 +174,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         img = p.getCameraImage(eih_res, eih_res, view_matrix,
                                projection_matrix)
         rgba_data = img[2]
-        rgb_data = rgba_data[0:eih_res * eih_res * eih_dep]
-        return self._rgbSequence2SplitPixelArrays(np.array(rgb_data), eih_dep, eih_res)
+        return self._pixelArray2RGBArray(rgba_data, eih_dep, eih_res)
         # todo add mono image return
 
     # Returns an RGB image from the Eye To Hand camera
@@ -218,19 +217,17 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # rgb = img_arr[2]
         # np_img_arr = np.reshape(rgb, (*self._eth_camera_resolution, *self._eth_camera_resolutionn, 4))
         rgba_data = img_arr[2]
-        rgb_data = rgba_data[0:eth_res*eth_res*eth_dep]
-        return self._rgbSequence2SplitPixelArrays(np.array(rgb_data), eth_dep, eth_res)
+        return self._pixelArray2RGBArray(rgba_data, eth_dep, eth_res)
         # todo add mono image return
 
-    def _rgbSequence2SplitPixelArrays(self, rgb_seq, img_dep, img_res):
-
-        # Split into an individual array containing the RGB value for each pixel
-        pixelArray = np.array_split(rgb_seq, img_res*img_res)
+    # Converts Matrices in the format where they are stored as arrays of RGBA values for individual pixels, into separate R,G,B arrays while maintaining image dimensions
+    def _pixelArray2RGBArray(self, rgba_seq, img_dep, img_res):
         r, g, b = [], [], []
-        for pixel in pixelArray:
-            r.append(pixel[0])
-            g.append(pixel[1])
-            b.append(pixel[2])
+        for row in rgba_seq:
+            for pixel in row:
+                r.append(pixel[0])
+                g.append(pixel[1])
+                b.append(pixel[2])
 
         rgb = [r, g, b]
         # Split into three RGB layers
