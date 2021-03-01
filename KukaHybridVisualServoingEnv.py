@@ -32,6 +32,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  eth_camera_resolution: int = 120,
                  image_depth: int = 3,
                  steps: int = 20,
+                 discount = 1.0,
                  rGoal=True,
                  rCollision=True,
                  rTime=True,
@@ -54,6 +55,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._velocity_input = velocity_input
         self._eih_camera_resolution: int = eih_camera_resolution
         self._eth_camera_resolution: int = eth_camera_resolution
+        self.discount = discount
         self.rGoal = rGoal
         self.rCollision = rCollision
         self.rTime = rTime
@@ -348,10 +350,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         reward = self._reward(self.rGoal, self.rCollision, self.rTime, self.rRotation, self.rTranslation)
 
         if done:
-            return ts.termination(observation=observation, reward=1.0)
+            return ts.termination(observation=observation, reward=reward)
         else:
-            return ts.transition(observation=observation, reward=1.0, discount=1.0)
-        # observation, reward, done
+            return ts.transition(observation=observation, reward=reward, discount=self.discount)
 
     def render(self, mode='human'):
         return
