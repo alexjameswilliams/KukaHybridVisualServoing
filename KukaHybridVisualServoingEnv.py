@@ -31,7 +31,12 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  eih_camera_resolution: int = 120,
                  eth_camera_resolution: int = 120,
                  image_depth: int = 3,
-                 steps: int = 20):
+                 steps: int = 20,
+                 rGoal=True,
+                 rCollision=True,
+                 rTime=True,
+                 rRotation=False,
+                 rTranslation=False):
         self._timeStep = 1. / 240.
         self._simulationStepsPerTimeStep = 24
         self.max_steps = steps
@@ -49,6 +54,12 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._velocity_input = velocity_input
         self._eih_camera_resolution: int = eih_camera_resolution
         self._eth_camera_resolution: int = eth_camera_resolution
+        self.rGoal = rGoal
+        self.rCollision = rCollision
+        self.rTime = rTime
+        self.rRotation = rRotation
+        self.rTranslation = rTranslation
+
         self.terminated = False
         self._p = p
         if self._renders:
@@ -334,7 +345,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._envStepCounter += 1
         done = self._termination()
         observation = self.getObservation()
-        reward = self._reward()
+        reward = self._reward(self.rGoal, self.rCollision, self.rTime, self.rRotation, self.rTranslation)
 
         if done:
             return ts.termination(observation=observation, reward=1.0)
