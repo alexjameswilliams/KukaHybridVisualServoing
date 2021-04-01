@@ -302,7 +302,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         return observation
 
     # Converts a normalised joint angle value between [0..1] into joint range equivalent radian value
-    def normalised_action_to_joint_angles(self, action):
+    def normalisedAction2JointAngles(self, action):
 
         actual_joint_values = []
         # Check number of joint inputs is correct
@@ -318,8 +318,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         return actual_joint_values
 
-    # Normalises the joint angle to a value between [0..1]
-    def normalise_joint_angles(self, joint_positions):
+    # Normalises the joint angle in radans to a value between [0..1]
+    def normaliseJointAngles(self, joint_positions):
 
         normalised_values = []
         # Check number of joint inputs is correct
