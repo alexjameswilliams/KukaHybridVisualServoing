@@ -77,7 +77,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._p.setAdditionalSearchPath(pybullet_data.getDataPath())  # todo do I need this and the rooturdf line?
         self._reset()
         self.viewer = None
-        self._action_spec = array_spec.BoundedArraySpec(shape=(1,7), dtype=np.float32, minimum=0.0, maximum=1.0, name='joint positions')
+        self._action_spec = self.action_spec()
         self._observation_spec = self.observation_spec()
 
 
