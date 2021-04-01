@@ -477,17 +477,23 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
 
-    # Generate random coordinates for the episodic target and place as a flat urdf model in environment
-    def generateTarget(self):
 
-        # Generate 4 random numbers to choose 2 for the x and y coordinates of the target
-        # This is to avoid the robots base and ensure targets are within robot's reach
-        ranges = np.random.uniform(KUKA_MIN_RANGE, KUKA_MAX_RANGE, 4)
-        x_ranges = np.stack((ranges[0], -ranges[1]))
-        y_ranges = np.stack((ranges[2], -ranges[3]))
-        target_x = np.random.choice(x_ranges)
-        target_y = np.random.choice(y_ranges)
-        self.target_position = [target_x, target_y]
+    # Generate random coordinates for the episodic target and place as a flat urdf model in environment
+    def generateGoal(self, x=null, y=null, size = 1):
+
+        # todo check x,y are valid
+        if x and y:
+            self.target_position = [x, y]
+        else:
+            #todo link random numbers to random seed
+            # Generate 4 random numbers to choose 2 for the x and y coordinates of the target
+            # This is to avoid the robots base and ensure targets are within robot's reach
+            ranges = np.random.uniform(KUKA_MIN_RANGE, KUKA_MAX_RANGE, 4)
+            x_ranges = np.stack((ranges[0], -ranges[1]))
+            y_ranges = np.stack((ranges[2], -ranges[3]))
+            target_x = np.random.choice(x_ranges)
+            target_y = np.random.choice(y_ranges)
+            self.target_position = [target_x, target_y]
 
         print('target pos = ' + str(np.multiply(self.target_position, 1000)))
 
@@ -496,7 +502,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             shapeType=p.GEOM_MESH,
             fileName='target.obj',
             rgbaColor=[1, 0, 0, 1],  # red
-            meshScale=[1, 1, 1])
+            meshScale=[size, size, size])
 
         # Place object at generated coordinates
         target_id = p.createMultiBody(
@@ -507,20 +513,20 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         return target_id
 
     # Load floor urdf file and place in environment
-    def generateFloor(self):
+    def generateFloor(self, size=1):
 
         # Load URDF file and colour
         visualShapeId = p.createVisualShape(
             shapeType=p.GEOM_MESH,
             fileName='floor.obj',
             rgbaColor=[0.6, 0.6, 0.6, 1],  # grey
-            meshScale=[1, 1, 1])
+            meshScale=[size, size, size])
 
         # Ensure floor can be collided with
         collisionShapeId = p.createCollisionShape(
             shapeType=p.GEOM_MESH,
             fileName='floor.obj',
-            meshScale=[1, 1, 1])
+            meshScale=[size, size, size])
 
         # Merge collision and visual profile and place object
         floor = p.createMultiBody(
@@ -531,14 +537,13 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         return floor
 
-    def generateRobot(self):
+    def generateRobot(self, jointPositions=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]):
         # Load KUKA iiwa Model
         start_pos = [0, 0, 0]
         start_orientation = p.getQuaternionFromEuler([0, 0, 0])
         self._kuka = p.loadURDF("kuka_iiwa/model.urdf", start_pos, start_orientation)
 
         # Set KUKA Joint angles
-        jointPositions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
         for jointIndex in np.arange(p.getNumJoints(self._kuka)):
             p.resetJointState(self._kuka, jointIndex, jointPositions[jointIndex])
             p.setJointMotorControl2(bodyUniqueId=self._kuka, jointIndex=jointIndex, controlMode=p.POSITION_CONTROL, maxVelocity=KUKA_VELOCITY_LIMIT)
@@ -572,6 +577,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             observation_spec.update({'joint_positions': array_spec.BoundedArraySpec(shape=(7,), dtype=np.float32,
                                                                                     minimum=lower_limits,
                                                                                     maximum=upper_limits)})
+        # todo could joint_velocities just be converted to an array spec if we are not using the bounds?
         if self._velocity_input:
             observation_spec.update({'joint_velocities': array_spec.BoundedArraySpec(shape=(7,), dtype=np.float32)})
                                                                                      #minimum=minimum_velocities,
