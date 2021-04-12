@@ -234,6 +234,19 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         return self._pixelArray2RGBArray(rgba_data, eth_dep, eth_res)
         # todo add mono image return
 
+    # Returns all current joint positions and velocities
+    def _getJointInformation(self):
+        positions = []
+        velocities = []
+        jointRange = np.arange(0, p.getNumJoints(self._kuka))
+        jointStates = p.getJointStates(self._kuka, jointRange)
+        for joint in jointStates:
+            positions.append(joint[0])
+            velocities.append(joint[1])
+
+        return positions, velocities
+
+
     # Converts Matrices in the format where they are stored as arrays of RGBA values for individual pixels, into separate R,G,B arrays while maintaining image dimensions
     def _pixelArray2RGBArray(self, rgba_seq, img_dep, img_res):
         r, g, b = [], [], []
@@ -254,7 +267,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # joint_velocities: Robot joint velocities
     def getObservation(self):
 
-        observation= {}
+        observation = {}
 
         # Get camera observation data
         if self._eih_input:
@@ -266,23 +279,13 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             observation.update({'eth_image': np.array(image_eth, dtype=np.float32)})
 
         # Get robotic joints observation data
-        if self._position_input:
-            positions = []
-            jointRange = np.arange(0, p.getNumJoints(self._kuka))
-            jointStates = p.getJointStates(self._kuka, jointRange)
-            for joint in jointStates:
-                positions.append(joint[0])
+        if self._position_input or self._velocity_input:
+            joint_positions, joint_velocities = self._getJointInformation()
+            if self._position_input:
+                observation.update({'joint_positions': np.array(joint_positions, dtype=np.float32)})
 
-            observation.update({'joint_positions': np.array(positions, dtype=np.float32)})
-
-        if self._velocity_input:
-            velocities = []
-            jointRange = np.arange(0, p.getNumJoints(self._kuka))
-            jointStates = p.getJointStates(self._kuka, jointRange)
-            for joint in jointStates:
-                velocities.append(joint[1])
-
-            observation.update({'joint_velocities': np.array(velocities, dtype=np.float32)})
+            if self._velocity_input:
+                observation.update({'joint_velocities': np.array(joint_velocities, dtype=np.float32)})
 
         return observation
 
