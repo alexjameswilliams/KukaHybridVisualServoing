@@ -235,7 +235,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # todo add mono image return
 
     # Returns all current joint positions and velocities
-    def _getJointInformation(self):
+    def _getJointStates(self):
         positions = []
         velocities = []
         jointRange = np.arange(0, p.getNumJoints(self._kuka))
@@ -280,7 +280,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         # Get robotic joints observation data
         if self._position_input or self._velocity_input:
-            joint_positions, joint_velocities = self._getJointInformation()
+            joint_positions, joint_velocities = self._getJointStates()
             if self._position_input:
                 observation.update({'joint_positions': np.array(joint_positions, dtype=np.float32)})
 
