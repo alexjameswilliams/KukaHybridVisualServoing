@@ -325,7 +325,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Advance simulation and collect observation, reward, and termination data
     def _step(self, action):
 
-        jointPositionTarget = self.normalised_action_to_joint_angles(action)
+        # Set target position to move towards
+        jointPositionTarget = self.normalisedAction2JointAngles(action)
         self.setKukaJointAngles(jointPositionTarget)
 
         # Advance Simulation by 1 Environment timestep (by advancing through X SIMULATION_STEPS_PER_TIMESTEP)
