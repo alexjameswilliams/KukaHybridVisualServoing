@@ -46,7 +46,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._actionRepeat = actionRepeat
         self._isEnableSelfCollision = isEnableSelfCollision
         self._observation = []
-        self._envStepCounter = 0
+        self._timestep_count = 0
         self._renders = renders
         self._isDiscrete = isDiscrete
         self._eih_input = eih_input
@@ -102,7 +102,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self.floor_id = self.generateFloor()
         self.target_id = self.generateGoal()
 
-        self._envStepCounter = 0
+        self._timestep_count = 0
         p.stepSimulation()
         self._observation = self.getObservation()
         return ts.restart(observation=self._observation)
@@ -329,7 +329,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         for step in np.arange(0, SIMULATION_STEPS_PER_TIMESTEP):
             p.stepSimulation()
 
-        self._envStepCounter += 1
+        self._timestep_count += 1
         done = self._termination()
         observation = self.getObservation()
         reward = self._reward(self.rGoal, self.rCollision, self.rTime, self.rRotation, self.rTranslation)
@@ -345,7 +345,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Checks if a condition for termination has been met
     # Termination can be triggered by collision, goal achievement, or when the maximum number of steps have been reached
     def _termination(self):
-        if (self.terminated or self._envStepCounter > self.max_steps):
+        if (self.terminated or self._timestep_count > self.max_steps):
             self.terminated = True
             return True
         return False
