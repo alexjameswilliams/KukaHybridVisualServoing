@@ -10,9 +10,12 @@ from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
 
 # todo verify ranges in simulation and minimum height
-KUKA_MIN_RANGE = .400   # approximation based on robot documentation
-KUKA_MAX_RANGE = .780   # approximation based on robot documentation
-KUKA_VELOCITY_LIMIT = 1.0    # Maximum velocity of robotic joints. If not lmiited then robot goes out of its joint limit
+KUKA_MIN_RANGE = .400               # approximation based on robot documentation
+KUKA_MAX_RANGE = .780               # approximation based on robot documentation
+KUKA_VELOCITY_LIMIT = 1.0           # Maximum velocity of robotic joints. If not lmiited then robot goes out of its joint limit
+MAX_REWARD_MAGNITUDE = 1.0          # Maximum magnitude of a positive or negative reward i.e. normalised to [-1,1]
+SIMULATION_STEP_DELTA = 1. / 240.   # Time between each simulation step
+SIMULATION_STEPS_PER_TIMESTEP = 24  # Number of simulation steps in one algorithmic timestep
 
 
 class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
@@ -38,9 +41,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  rTime=True,
                  rRotation=False,
                  rTranslation=False):
-        self._timeStep = 1. / 240.
-        self._simulationStepsPerTimeStep = 24
-        self.max_steps = steps
+        self.max_steps = timesteps
         self._urdfRoot = urdfRoot
         self._actionRepeat = actionRepeat
         self._isEnableSelfCollision = isEnableSelfCollision
@@ -91,7 +92,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self.terminated = False
         p.resetSimulation()
         # p.setPhysicsEngineParameter(numSolverIterations=150)
-        p.setTimeStep(self._timeStep)
+        p.setTimeStep(SIMULATION_STEP_DELTA)
         p.loadURDF(os.path.join(self._urdfRoot, "plane.urdf"), [0, 0, -1])
         p.setGravity(0, 0, -10)
 
@@ -341,7 +342,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         print('JPT')
         print(jointPositionTarget)
         self.setKukaJointAngles(jointPositionTarget)
-        for step in np.arange(0, self._simulationStepsPerTimeStep):
+
+        # Advance Simulation by 1 Environment timestep (by advancing through X SIMULATION_STEPS_PER_TIMESTEP)
+        for step in np.arange(0, SIMULATION_STEPS_PER_TIMESTEP):
             p.stepSimulation()
 
         self._envStepCounter += 1
