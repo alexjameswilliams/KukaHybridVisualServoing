@@ -258,21 +258,12 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         # Get camera observation data
         if self._eih_input:
-            eih_dep = self._image_depth[0]
-            eih_res = self._eih_camera_resolution[0]
             image_eih = self._getEyeInHandCamera()
             observation.update({'eih_image': np.array(image_eih, dtype=np.float32)})
-            # print("OBSERVATION EIH:")
-            # print(image_eih)
 
         if self._eth_input:
-            eth_dep = self._image_depth[0]
-            eth_res = self._eth_camera_resolution[0]
             image_eth = self._getEyeToHandCamera()
             observation.update({'eth_image': np.array(image_eth, dtype=np.float32)})
-
-            # print("OBSERVATION ETH:")
-            # print(image_eth)
 
         # Get robotic joints observation data
         if self._position_input:
@@ -284,8 +275,6 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
             observation.update({'joint_positions': np.array(positions, dtype=np.float32)})
 
-            # print("OBSERVATION POS:")
-            # print(positions)
         if self._velocity_input:
             velocities = []
             jointRange = np.arange(0, p.getNumJoints(self._kuka))
@@ -294,11 +283,6 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                 velocities.append(joint[1])
 
             observation.update({'joint_velocities': np.array(velocities, dtype=np.float32)})
-            # print("OBSERVATION VEL:")
-            # print(velocities)
-
-        #print("OBSERVATION:")
-        #print(observation)
 
         return observation
 
