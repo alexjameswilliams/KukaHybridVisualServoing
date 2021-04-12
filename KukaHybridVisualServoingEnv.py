@@ -297,8 +297,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             # print("OBSERVATION VEL:")
             # print(velocities)
 
-        print("OBSERVATION:")
-        print(observation)
+        #print("OBSERVATION:")
+        #print(observation)
 
         return observation
 
@@ -339,8 +339,6 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     def _step(self, action):
 
         jointPositionTarget = self.normalised_action_to_joint_angles(action)
-        print('JPT')
-        print(jointPositionTarget)
         self.setKukaJointAngles(jointPositionTarget)
 
         # Advance Simulation by 1 Environment timestep (by advancing through X SIMULATION_STEPS_PER_TIMESTEP)
