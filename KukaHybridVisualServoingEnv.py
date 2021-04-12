@@ -99,7 +99,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Load objects
         self.generateRobot()
         self.floor_id = self.generateFloor()
-        self.target_id = self.generateTarget()
+        self.target_id = self.generateGoal()
 
         self._envStepCounter = 0
         p.stepSimulation()
