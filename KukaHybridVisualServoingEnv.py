@@ -14,6 +14,10 @@ KUKA_MIN_RANGE = .400               # approximation based on robot documentation
 KUKA_MAX_RANGE = .780               # approximation based on robot documentation
 KUKA_VELOCITY_LIMIT = 1.0           # Maximum velocity of robotic joints. If not lmiited then robot goes out of its joint limit
 MAX_REWARD_MAGNITUDE = 1.0          # Maximum magnitude of a positive or negative reward i.e. normalised to [-1,1]
+TIME_PENALTY = 0.05                 # Penalty applied per timestep if time reward function activated. todo decide if this should be a fraction of the number of timesteps instead
+POSITION_REWARD_CONSTANT = 0.4      # Maximum fraction of optimal reward that can be awarded for positional alignment if positional reward activated. Must be less than 0.5.
+ROTATION_REWARD_CONSTANT = 0.4      # Maximum fraction of optimal reward that can be awarded for rotational alignment if rotational reward activated. Must be less than 0.5.
+
 SIMULATION_STEP_DELTA = 1. / 240.   # Time between each simulation step
 SIMULATION_STEPS_PER_TIMESTEP = 24  # Number of simulation steps in one algorithmic timestep
 
@@ -36,11 +40,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  image_depth: int = 3,
                  steps: int = 20,
                  discount = 1.0,
-                 rGoal=True,
-                 rCollision=True,
-                 rTime=True,
-                 rRotation=False,
-                 rTranslation=False):
+                 reward_goal=True,
+                 reward_collision=True,
+                 reward_time=True,
+                 reward_rotation=False,
+                 reward_position=False): #todo add target behaviour parameters (shape, resolution, random etc.)
         self.max_steps = timesteps
         self._urdfRoot = urdfRoot
         self._actionRepeat = actionRepeat
@@ -57,11 +61,17 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._eih_camera_resolution: int = eih_camera_resolution
         self._eth_camera_resolution: int = eth_camera_resolution
         self.discount = discount
-        self.rGoal = rGoal
-        self.rCollision = rCollision
-        self.rTime = rTime
-        self.rRotation = rRotation
-        self.rTranslation = rTranslation
+        self.reward_goal = reward_goal
+        self.reward_collision = reward_collision
+        self.reward_time = reward_time
+        self.reward_position = reward_position
+        self.reward_rotation = reward_rotation
+
+        #todo could set these in the constructor for curriculum learning experiments
+        self.positional_tolerance = 0.001  # 1mm
+        self.rotational_tolerance = 1.0  # 1 degree
+        self.vertical_distance = 0.05  # 5cm
+
 
         self.terminated = False
         self._p = p
@@ -336,7 +346,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._timestep_count += 1
         done = self._termination()
         observation = self.getObservation()
-        reward = self._reward(self.rGoal, self.rCollision, self.rTime, self.rRotation, self.rTranslation)
+        reward = self._reward(self.reward_goal, self.reward_collision, self.reward_time, self.reward_rotation, self.reward_position)
 
         if done:
             return ts.termination(observation=observation, reward=reward)
@@ -356,109 +366,89 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
     # Reward Function has 5 possible subfunctions which are incorporated depending on sparseness of reward signal
     # These subfunctions can be activated by setting the following flags
-    # rGoal: Binary reward signal of whether reward achieved or not
-    # rCollision: Binary reward signal of whether collision detected
-    # rTime: Incremental penalty for each timestep within allowed timelimit
-    # rTranslation: Incremental Reward for translation towards target position
-    # rRotation: Incremental penalty for deviation from target orientation
+    # reward_goal: Binary reward signal of whether goal achieved or not
+    # reward_collision: Binary reward signal of whether collision detected
+    # reward_time: Incremental penalty for each timestep within allowed timelimit
+    # reward_position: Incremental Reward for position towards target position
+    # reward_rotation: Incremental penalty for deviation from target orientation
 
-    # By default, rGoal, rCollision, and rTime are enabled and rTranslation and rRotation are disabled
-    def _reward(self, rGoal=True, rCollision=True, rTime=True, rRotation=False, rTranslation=False):
+    def _reward(self, reward_goal=True, reward_collision=True, reward_time=True, reward_rotation=False, reward_position=False):
 
-        max_goal_magnitude = 1.0
         reward = 0.0
-        if rGoal:
-            self.translational_tolerance = 0.001  # 1mm
-            self.angular_tolerance = 1.0  # 1 degree
-            self.vertical_distance = 0.05  # 5cm
 
-            # 1) Calculate Kuka End Effector position and orientation (link 7)
-            effector_position, effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6,
-                                                                                 computeForwardKinematics=True)
+        # 1) Calculate Kuka End Effector position and orientation (link 7)
+        effector_position, effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6,computeForwardKinematics=True)
 
-            # 2) Retrieve Target Position
-            target_position, target_orientation = p.getBasePositionAndOrientation(self.target_id)
-            target_position = np.asarray(target_position)
-            target_position[2] = target_position[2] + self.vertical_distance
+        # 2) Retrieve Target Position
+        target_position, target_orientation = p.getBasePositionAndOrientation(self.target_id)
+        target_position = np.asarray(target_position)
+        target_position[2] = target_position[2] + self.vertical_distance
 
-            # 3) Calculate Euclidean distance between end effector and target
-            distance = np.linalg.norm(target_position - np.asarray(effector_position))
-            # print('Distance = ' + str(distance))
+        # 3) Calculate Euclidean distance between end effector and target
+        distance = np.linalg.norm(target_position - np.asarray(effector_position))
 
-            # 4) Calculate orientation matrix between effector orientation and target orientation
-            target_orientation = np.array(p.getEulerFromQuaternion(target_orientation))
-            target_orientation[0] += np.deg2rad(90)
-            target_orientation = p.getQuaternionFromEuler(target_orientation)
-            orientation_diff = p.getDifferenceQuaternion(target_orientation, effector_orientation)
+        # 4) Calculate orientation matrix between effector orientation and target orientation
+        target_orientation = np.array(p.getEulerFromQuaternion(target_orientation))
+        target_orientation[0] += np.deg2rad(90)
+        target_orientation = p.getQuaternionFromEuler(target_orientation)
+        orientation_diff = p.getDifferenceQuaternion(target_orientation, effector_orientation)
 
-            # 5) Calculate cumulative rotational error
-            orientation_diff = p.getEulerFromQuaternion(orientation_diff)
-            cumulative_error = 0
-            for orientation in orientation_diff:
-                cumulative_error += np.abs(orientation)
+        # 4.5 Calculate Magnitude of Orientation difference
+        rotation = np.linalg.norm(orientation_diff)
 
-            # 6) Check if within dimensional tolerances, if true then goal achieved
-            if (np.abs(distance) <= self.translational_tolerance) and (cumulative_error <= self.angular_tolerance):
+        if reward_goal:
+
+            # 5) Check if within dimensional tolerances, if true then goal achieved
+            if (np.abs(distance) <= self.positional_tolerance) and (np.abs(rotation) <= self.rotational_tolerance):
                 print('Goal Achieved')
-                reward += max_goal_magnitude
+                reward += MAX_REWARD_MAGNITUDE
                 self.terminated = True
 
-            # ? 7) Verify that target is in camera?
+            # ? 6) Verify that target is in camera?
 
-        if rTime and self.terminated:
-            # 1) Reduce maximum reward by an amount proportional to the number of timesteps
-            reward += -((max_goal_magnitude / self.max_steps) * self._envStepCounter)
+        if reward_position and not self.terminated:
 
-        if rCollision:
+            # 4) Return a fraction of maximum reward until within tolerance range
+            max_positional_distance = (2 * KUKA_MAX_RANGE) - self.positional_tolerance
+            position_reward = POSITION_REWARD_CONSTANT * MAX_REWARD_MAGNITUDE
+
+            # if within tolerance, reward maximum allowed
+            if np.abs(distance) <= self.positional_tolerance:
+                reward = reward + position_reward
+            # Otherwise, reward  a fraction depending on relative positional error
+            else:
+                reward = reward + position_reward * ((max_positional_distance - np.abs(distance)) / max_positional_distance)
+
+        if reward_rotation and not self.terminated:
+
+            # 5) Return up to 0.4 of maximum reward until within tolerance range
+            max_rotational_distance = 180 - self.rotational_tolerance
+            rotation_reward = ROTATION_REWARD_CONSTANT * MAX_REWARD_MAGNITUDE
+
+            # if within tolerance, reward maximum allowed
+            if np.abs(rotation) <= self.rotational_tolerance:
+                reward = reward + rotation_reward
+            # Otherwise, reward  a fraction depending on relative rotational error
+            else:
+                reward = reward + rotation_reward * ((max_rotational_distance - np.abs(rotation)) / max_rotational_distance)
+
+        #todo decide which reward function to use
+        if reward_time and not self.terminated:
+            # Method 1) Reduce reward by a fixed amount every timestep
+            reward = reward - TIME_PENALTY
+
+        #if reward_time and self.terminated:
+            # Method 2) Reduce maximum reward by an amount proportional to the number of timesteps
+            # reward = reward * ((MAX_REWARD_MAGNITUDE / self.max_steps) * self._timestep_count)
+
+        if reward_collision:
             # 1) Check if collision detected
             contact = p.getContactPoints(self._kuka, self.floor_id)
             if contact:
                 # 2) if detected then end simulation and return maximum penalty
                 print('Collision Detected')
-                reward = -max_goal_magnitude
+                reward = -MAX_REWARD_MAGNITUDE
                 self.terminated = True
-
-        if rTranslation and not self.terminated:
-            # 1) Calculate Kuka End Effector position and orientation (link 7)
-            # todo possibly link in to rGoal to avoid calling twice
-            effector_position, _, _, _, _, _ = p.getLinkState(self._kuka, 6, computeForwardKinematics=True)
-
-            # 2) Retrieve Target Position
-            target_position, _ = p.getBasePositionAndOrientation(self.target_id)
-            target_position = np.asarray(target_position)
-            target_position[2] = target_position[2] + self.vertical_distance
-
-            # 3) Calculate Euclidean distance between end effector and target
-            distance = np.linalg.norm(target_position - np.asarray(effector_position))
-
-            # 4) Return up to 0.4 of maximum reward until within tolerance range
-            max_possible_distance = (
-                                                2 * KUKA_MAX_RANGE) - self.translational_tolerance  # todo this may be a bit of a blunt implementation - better heuristic?
-            reward = 0.4 * max_goal_magnitude * (
-                        (max_possible_distance - np.abs(distance) + self.tolerance) / max_possible_distance)
-            if reward > 0.4 * max_goal_magnitude:
-                reward += 0.4 * max_goal_magnitude
-
-        if rRotation and not self.terminated:
-            # 1) Calculate orientation matrix between effector orientation and target orientation
-            target_orientation = np.array(p.getEulerFromQuaternion(target_orientation))
-            target_orientation[0] += np.deg2rad(90)
-            target_orientation = p.getQuaternionFromEuler(target_orientation)
-            orientation_diff = p.getDifferenceQuaternion(target_orientation, effector_orientation)
-
-            # 2) Calculate cumulative rotational error
-            orientation_diff = p.getEulerFromQuaternion(orientation_diff)
-            cumulative_error = 0
-            for orientation in orientation_diff:
-                cumulative_error += np.abs(orientation)
-
-            # 4) Return up to 0.4 of maximum reward until within tolerance range
-            max_possible_rotation = (
-                                                2 * 180) - self.angular_tolerance  # todo this may be a bit of a blunt implementation - better heuristic?
-            reward = 0.4 * max_goal_magnitude * ((max_possible_rotation - np.abs(
-                cumulative_error) + self.angular_tolerance) / max_possible_rotation)
-            if reward > 0.4 * max_goal_magnitude:
-                reward += 0.4 * max_goal_magnitude
 
         return reward
 
