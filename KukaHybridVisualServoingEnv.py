@@ -468,7 +468,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
 
     # Generate random coordinates for the episodic target and place as a flat urdf model in environment
-    def generateGoal(self, x=null, y=null, size = 1):
+    def generateGoal(self, x=None, y=None, size = 1):
 
         # todo check x,y are valid
         if x and y:
