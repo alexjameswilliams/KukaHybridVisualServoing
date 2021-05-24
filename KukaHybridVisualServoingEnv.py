@@ -344,11 +344,14 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             p.stepSimulation()
 
         self._timestep_count += 1
-        done = self._termination()
+
+        #todo check that reward and termination are in right order and doing the right things
+        self._termination()
         observation = self.getObservation()
         reward = self._reward(self.reward_goal, self.reward_collision, self.reward_time, self.reward_rotation, self.reward_position)
 
-        if done:
+        #todo check that these returns are correct re: reward and discount
+        if self.terminated:
             return ts.termination(observation=observation, reward=reward)
         else:
             return ts.transition(observation=observation, reward=reward, discount=self.discount)
