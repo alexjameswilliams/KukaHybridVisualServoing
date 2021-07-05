@@ -335,6 +335,10 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Advance simulation and collect observation, reward, and termination data
     def _step(self, action):
 
+        if self.terminated:
+            # The last action ended the episode. Ignore the current action and start a new episode.
+            return self.reset()
+
         # Set target position to move towards
         jointPositionTarget = self.normalisedAction2JointAngles(action)
         self.setKukaJointAngles(jointPositionTarget)
