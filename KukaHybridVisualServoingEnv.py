@@ -367,6 +367,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         print('Timestep: ' + str(self._timestep_count))
         print('End Effector Position: ' + str(self.effector_position))
         print('End Effector Orientation: ' + str(self.effector_orientation))
+        print('Reward: ' + str(self.reward))
         print('Terminate: ' + str(self.terminated))
         print()
 
