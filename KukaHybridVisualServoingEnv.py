@@ -30,16 +30,19 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  actionRepeat=1,
                  isEnableSelfCollision: bool = True,
                  renders: bool = False,
-                 isDiscrete: bool = False,
+                 isDiscrete: bool = False, #todo I could add functionality for this in
                  eih_input: bool = True,
                  eth_input: bool = True,
                  position_input: bool = True,
                  velocity_input: bool = True,
+                 camera_resolution: int = 120, #todo incorporate this like below
                  eih_camera_resolution: int = 120,
                  eth_camera_resolution: int = 120,
-                 image_depth: int = 3,
-                 steps: int = 20,
-                 discount = 1.0,
+                 image_depth: int = 3, #todo add option to only set this variable if others unset
+                 eih_camera_depth: int = 3, #todo incorporate this into code
+                 eth_camera_depth: int = 3, #todo incorporate this into code
+                 timesteps: int = 50,
+                 discount: float = 1.0,
                  reward_goal=True,
                  reward_collision=True,
                  reward_time=True,
@@ -116,7 +119,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         p.stepSimulation()
         self._observation = self.getObservation()
         return ts.restart(observation=self._observation)
-        #return np.array(self._observation)
+
 
     @property
     # Returns the Kuka's current joint state including Position, Velocity,
@@ -202,7 +205,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # todo add mono image return
 
     # Returns an RGB image from the Eye To Hand camera
-    # todo possibly add manipulation of camera position and resolution
+    # todo possibly add manipulation of camera position and resolution in method call
     def _getEyeToHandCamera(self):
 
         eth_res = self._eth_camera_resolution[0]
@@ -490,7 +493,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             target_y = np.random.choice(y_ranges)
             self.target_position = [target_x, target_y]
 
-        print('target pos = ' + str(np.multiply(self.target_position, 1000)))
+        print('target pos = ' + str(self.target_position))
 
         # Load URDF file and colour
         visualShapeId = p.createVisualShape(
