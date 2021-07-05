@@ -361,6 +361,15 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             return ts.transition(observation=observation, reward=reward, discount=self.discount)
 
     def render(self, mode='human'):
+        positions, velocities = self._getJointStates()
+        effector_position, effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6, computeForwardKinematics=True)
+        print('Timestep: ' + str(self._timestep_count))
+        print('End Effector Position: ' + str(effector_position))
+        print('End Effector Orientation: ' + str(effector_orientation))
+        print('Terminate: ' + str(self.terminated))
+        print()
+
+        #todo put in print statement for distance from goal
         return
 
     # Checks if a condition for termination has been met
