@@ -359,9 +359,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         #todo check that these returns are correct re: reward and discount
         if self.terminated:
-            return ts.termination(observation=observation, reward=reward)
+            return ts.termination(observation=observation, reward=self.reward)
         else:
-            return ts.transition(observation=observation, reward=reward, discount=self.discount)
+            return ts.transition(observation=observation, reward=self.reward, discount=self.discount)
 
     def render(self, mode='human'):
         print('Timestep: ' + str(self._timestep_count))
