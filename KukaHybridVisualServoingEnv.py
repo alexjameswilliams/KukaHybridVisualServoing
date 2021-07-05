@@ -355,7 +355,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         #todo check that reward and termination are in right order and doing the right things
         self._termination()
         observation = self.getObservation()
-        reward = self._reward(self.reward_goal, self.reward_collision, self.reward_time, self.reward_rotation, self.reward_position)
+        self.reward = self._reward(self.reward_goal, self.reward_collision, self.reward_time, self.reward_rotation, self.reward_position)
 
         #todo check that these returns are correct re: reward and discount
         if self.terminated:
@@ -364,11 +364,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             return ts.transition(observation=observation, reward=reward, discount=self.discount)
 
     def render(self, mode='human'):
-        positions, velocities = self._getJointStates()
-        effector_position, effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6, computeForwardKinematics=True)
         print('Timestep: ' + str(self._timestep_count))
-        print('End Effector Position: ' + str(effector_position))
-        print('End Effector Orientation: ' + str(effector_orientation))
+        print('End Effector Position: ' + str(self.effector_position))
+        print('End Effector Orientation: ' + str(self.effector_orientation))
         print('Terminate: ' + str(self.terminated))
         print()
 
@@ -396,7 +394,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         reward = 0.0
 
         # 1) Calculate Kuka End Effector position and orientation (link 7)
-        effector_position, effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6,computeForwardKinematics=True)
+        self.effector_position, self.effector_orientation, _, _, _, _ = p.getLinkState(self._kuka, 6,computeForwardKinematics=True)
 
         # 2) Retrieve Target Position
         target_position, target_orientation = p.getBasePositionAndOrientation(self.target_id)
@@ -404,13 +402,13 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         target_position[2] = target_position[2] + self.vertical_distance
 
         # 3) Calculate Euclidean distance between end effector and target
-        distance = np.linalg.norm(target_position - np.asarray(effector_position))
+        distance = np.linalg.norm(target_position - np.asarray(self.effector_position))
 
         # 4) Calculate orientation matrix between effector orientation and target orientation
         target_orientation = np.array(p.getEulerFromQuaternion(target_orientation))
         target_orientation[0] += np.deg2rad(90)
         target_orientation = p.getQuaternionFromEuler(target_orientation)
-        orientation_diff = p.getDifferenceQuaternion(target_orientation, effector_orientation)
+        orientation_diff = p.getDifferenceQuaternion(target_orientation, self.effector_orientation)
 
         # 4.5 Calculate Magnitude of Orientation difference
         rotation = np.linalg.norm(orientation_diff)
