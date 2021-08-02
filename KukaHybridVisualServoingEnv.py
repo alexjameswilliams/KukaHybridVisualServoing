@@ -35,12 +35,10 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  eth_input: bool = True,
                  position_input: bool = True,
                  velocity_input: bool = True,
-                 camera_resolution: int = 120, #todo incorporate this like below
                  eih_camera_resolution: int = 120,
                  eth_camera_resolution: int = 120,
-                 image_depth: int = 3, #todo add option to only set this variable if others unset
-                 eih_camera_depth: int = 3, #todo incorporate this into code
-                 eth_camera_depth: int = 3, #todo incorporate this into code
+                 eth_channels: int = 3,
+                 eih_channels: int = 3,
                  timesteps: int = 50,
                  discount: float = 1.0,
                  reward_goal=True,
@@ -58,7 +56,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._isDiscrete = isDiscrete
         self._eih_input = eih_input
         self._eth_input = eth_input
-        self._image_depth = image_depth
+        self._eth_channels = eth_channels
+        self._eih_channels = eih_channels
         self._position_input = position_input
         self._velocity_input = velocity_input
         self._eih_camera_resolution: int = eih_camera_resolution
@@ -181,7 +180,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     def _getEyeInHandCamera(self):
 
         eih_res = self._eih_camera_resolution[0]
-        eih_dep = self._image_depth[0]
+        eih_dep = self._eih_channels[0]
 
         # todo fine tune resolution
         fov, aspect, nearplane, farplane = 60, 1.0, 0.01, 100
@@ -209,7 +208,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     def _getEyeToHandCamera(self):
 
         eth_res = self._eth_camera_resolution[0]
-        eth_dep = self._image_depth[0]
+        eth_dep = self._eth_channels[0]
 
         # todo fine tune positioning and resolution
         camEyePos = [0.03, 0.236, 0.54]
@@ -556,9 +555,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         minimum_velocities, maximum_velocities = self.getKukaVelocityLimits
 
         eih_res = self._eih_camera_resolution
-        eih_dep = self._image_depth
+        eih_dep = self._eih_channels
         eth_res = self._eth_camera_resolution
-        eth_dep = self._image_depth
+        eth_dep = self._eth_channels
 
         observation_spec: array_spec.ArraySpec = {}
 
