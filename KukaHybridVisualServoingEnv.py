@@ -46,6 +46,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  reward_time=True,
                  reward_rotation=False,
                  reward_position=False): #todo add target behaviour parameters (shape, resolution, random etc.)
+                 normalise_observation=True): #todo add target behaviour parameters (shape, resolution, random etc.)
         self.max_steps = timesteps
         self._urdfRoot = urdfRoot
         self._actionRepeat = actionRepeat
@@ -68,6 +69,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self.reward_time = reward_time
         self.reward_position = reward_position
         self.reward_rotation = reward_rotation
+        self.normalise_observation = normalise_observation
 
         #todo could set these in the constructor for curriculum learning experiments
         self.positional_tolerance = 0.001  # 1mm
@@ -272,7 +274,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Split into three RGB layers
         return np.array(rgb).reshape(img_dep, img_res, img_res)
 
-    # Observation consists of four components which are collected and returned via this function.
+    # Observation consists of up to four components which are collected and returned via this function.
+    # Observations will be normalised to the range [0..1] if the property self.normalise_observation is set to True.
+    # Observation Components are:
     # image_eih: Camera image from robot's end effector (Eye In Hand)
     # image_eth: Camera image overlooking scene (Eye to Hand)
     # joint_positions: Robot joint positions
@@ -284,19 +288,27 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Get camera observation data
         if self._eih_input:
             image_eih = self._getEyeInHandCamera()
+            if self.normalise_observation:
+                image_eih = self.normaliseImageValues(image_eih)
             observation.update({'eih_image': np.array(image_eih, dtype=np.float32)})
 
         if self._eth_input:
             image_eth = self._getEyeToHandCamera()
+            if self.normalise_observation:
+                image_eth = self.normaliseImageValues(image_eth)
             observation.update({'eth_image': np.array(image_eth, dtype=np.float32)})
 
         # Get robotic joints observation data
         if self._position_input or self._velocity_input:
             joint_positions, joint_velocities = self._getJointStates()
             if self._position_input:
+                if self.normalise_observation:
+                    joint_positions = self.normaliseJointAngles(joint_positions)
                 observation.update({'joint_positions': np.array(joint_positions, dtype=np.float32)})
 
             if self._velocity_input:
+                if self.normalise_observation:
+                    joint_velocities = self.normaliseJointVelocities(joint_velocities)
                 observation.update({'joint_velocities': np.array(joint_velocities, dtype=np.float32)})
 
         return observation
@@ -318,7 +330,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         return actual_joint_values
 
-    # Normalises the joint angle in radans to a value between [0..1]
+    # Normalises the joint angles in radians to a value between [0..1]
     def normaliseJointAngles(self, joint_positions):
 
         normalised_values = []
@@ -333,6 +345,28 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             normalised_values.append(0.5 + normal_value)
 
         return normalised_values
+
+    # Normalises the joint velocities to a value between [0..1]
+    def normaliseJointVelocities(self, joint_velocities):
+
+        normalised_values = []
+        # Check number of joint inputs is correct
+        if len(joint_velocities) != p.getNumJoints(self._kuka):
+            return False
+
+        # Check inputs are within maximum and minimum joint limits and amend if necessary
+        lowerLimits, upperLimits = self.getKukaVelocityLimits
+        for joint in np.arange(p.getNumJoints(self._kuka)):
+            normal_value = (joint_velocities[joint] / np.abs(upperLimits[joint])) * 0.5
+            normalised_values.append(0.5 + normal_value)
+
+        return normalised_values
+
+
+    # Normalise image values from [0..255] to [0..1]
+    def normaliseImageValues(self, image):
+        image /= 255.0
+        return image
 
     # Advance simulation and collect observation, reward, and termination data
     def _step(self, action):
