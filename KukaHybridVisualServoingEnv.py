@@ -76,7 +76,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self.rotational_tolerance = 1.0  # 1 degree
         self.vertical_distance = 0.05  # 5cm
 
-
+        self.goal_achieved = False
         self.terminated = False
         self._p = p
         if self._renders:
@@ -103,6 +103,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Initialise Environment
     def _reset(self):
 
+        self.goal_achieved = False
         self.terminated = False
         p.resetSimulation()
         # p.setPhysicsEngineParameter(numSolverIterations=150)
@@ -411,7 +412,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Checks if a condition for termination has been met
     # Termination can be triggered by collision, goal achievement, or when the maximum number of steps have been reached
     def _termination(self):
-        if (self.terminated or self._timestep_count > self.max_steps):
+        if self.terminated or self.goal_achieved or self._timestep_count > self.max_steps:
             self.terminated = True
             return True
         return False
@@ -454,11 +455,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             if (np.abs(distance) <= self.positional_tolerance) and (np.abs(rotation) <= self.rotational_tolerance):
                 print('Goal Achieved')
                 reward += MAX_REWARD_MAGNITUDE
-                self.terminated = True
+                self.goal_achieved = True
 
             # ? 6) Verify that target is in camera?
 
-        if reward_position and not self.terminated:
+        if reward_position and not self.goal_achieved:
 
             # 4) Return a fraction of maximum reward until within tolerance range
             max_positional_distance = (2 * KUKA_MAX_RANGE) - self.positional_tolerance
@@ -471,7 +472,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             else:
                 reward = reward + position_reward * ((max_positional_distance - np.abs(distance)) / max_positional_distance)
 
-        if reward_rotation and not self.terminated:
+        if reward_rotation and not self.goal_achieved:
 
             # 5) Return up to 0.4 of maximum reward until within tolerance range
             max_rotational_distance = 180 - self.rotational_tolerance
@@ -485,7 +486,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                 reward = reward + rotation_reward * ((max_rotational_distance - np.abs(rotation)) / max_rotational_distance)
 
         #todo decide which reward function to use
-        if reward_time and not self.terminated:
+        if reward_time and not self.goal_achieved:
             # Method 1) Reduce reward by a fixed amount every timestep
             reward = reward - TIME_PENALTY
 
