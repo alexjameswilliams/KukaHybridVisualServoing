@@ -365,6 +365,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
     # Normalise image values from [0..255] to [0..1]
     def normaliseImageValues(self, image):
+        image = image.astype(dtype=np.float32)
         image /= 255.0
         return image
 
