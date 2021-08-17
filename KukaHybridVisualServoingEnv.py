@@ -399,15 +399,56 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             return ts.transition(observation=observation, reward=self.reward, discount=self.discount)
 
     def render(self, mode='human'):
-        print('Timestep: ' + str(self._timestep_count))
-        print('End Effector Position: ' + str(self.effector_position))
-        print('End Effector Orientation: ' + str(self.effector_orientation))
-        print('Reward: ' + str(self.reward))
-        print('Terminate: ' + str(self.terminated))
-        print()
 
-        #todo put in print statement for distance from goal
-        return
+        if mode=='human':
+            print('Timestep: ' + str(self._timestep_count))
+            print('End Effector Position: ' + str(self.effector_position))
+            print('End Effector Orientation: ' + str(self.effector_orientation))
+            print('Reward: ' + str(self.reward))
+            print('Terminate: ' + str(self.terminated))
+            print()
+            #todo put in print statement for distance from goal
+            #print(effector_position)
+            #print(self.target_position)
+            #print('Distance from Target Position: ' + str(np.abs(effector_position - self.target_position)))
+
+        elif mode=='image':
+
+            # Set render parameters
+            cam_dist = 1.0
+            cam_yaw = 0
+            cam_pitch = -30
+            render_height = 360
+            render_width = 480
+
+            # Take Image of robot directly
+            base_pos = self._kuka.GetBasePosition()
+            view_matrix = p.computeViewMatrixFromYawPitchRoll(
+                cameraTargetPosition=base_pos,
+                distance=cam_dist,
+                yaw=cam_yaw,
+                pitch=cam_pitch,
+                roll=0,
+                upAxisIndex=2)
+            proj_matrix = p.computeProjectionMatrixFOV(fov=60,
+                                                                           aspect=float(render_width) /
+                                                                                  render_height,
+                                                                           nearVal=0.1,
+                                                                           farVal=100.0)
+            (_, _, px, _, _) = p.getCameraImage(
+                width=render_width,
+                height=render_height,
+                viewMatrix=view_matrix,
+                projectionMatrix=proj_matrix)
+            rgb_array = np.array(px)
+            rgb_array = rgb_array[:, :, :3]
+
+            # Fetch EIH and ETH Images from current observation
+            images = {"view": rgb_array,
+                      "eih_image": self._observation["eih_image"],
+                      "eth_image": self._observation["eth_image"]}
+
+            return images
 
     # Checks if a condition for termination has been met
     # Termination can be triggered by collision, goal achievement, or when the maximum number of steps have been reached
