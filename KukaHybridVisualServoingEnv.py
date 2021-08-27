@@ -44,8 +44,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  reward_goal=True,
                  reward_collision=True,
                  reward_time=True,
-                 reward_rotation=False,
-                 reward_position=False): #todo add target behaviour parameters (shape, resolution, random etc.)
+                 reward_rotation=True,
+                 reward_position=True,
                  normalise_observation=True): #todo add target behaviour parameters (shape, resolution, random etc.)
         self.max_steps = timesteps
         self._urdfRoot = urdfRoot
