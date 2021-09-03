@@ -21,6 +21,7 @@ ROTATION_REWARD_CONSTANT = 0.4      # Maximum fraction of optimal reward that ca
 SIMULATION_STEP_DELTA = 1. / 240.   # Time between each simulation step
 SIMULATION_STEPS_PER_TIMESTEP = 24  # Number of simulation steps in one algorithmic timestep
 
+GOAL_SIZE = 5                       # Size of goal in visualiser
 
 class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
@@ -115,7 +116,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Load objects
         self.generateRobot()
         self.floor_id = self.generateFloor()
-        self.target_id = self.generateGoal()
+        self.target_id = self.generateGoal(size=GOAL_SIZE)
 
         self._timestep_count = 0
         p.stepSimulation()
@@ -552,7 +553,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
 
     # Generate random coordinates for the episodic target and place as a flat urdf model in environment
-    def generateGoal(self, x=None, y=None, size = 1):
+    def generateGoal(self, x=None, y=None, size=1):
 
         # todo check x,y are valid
         if x and y:
