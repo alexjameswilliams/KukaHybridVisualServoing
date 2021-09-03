@@ -326,8 +326,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Check inputs are within maximum and minimum joint limits and amend if necessary
         lowerLimits, upperLimits = self.getKukaJointLimits
         for joint in np.arange(p.getNumJoints(self._kuka)):
-            range = upperLimits[joint] + lowerLimits[joint]
-            value = lowerLimits[joint] + (range * action[joint])
+            range = upperLimits[joint]
+            value = (range * action[joint])
             actual_joint_values.append(value)
 
         return actual_joint_values
