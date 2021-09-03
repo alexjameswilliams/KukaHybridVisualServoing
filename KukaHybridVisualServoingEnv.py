@@ -182,8 +182,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Credit: https://github.com/bulletphysics/bullet3/issues/1616
     def _getEyeInHandCamera(self):
 
-        eih_res = self._eih_camera_resolution[0]
-        eih_dep = self._eih_channels[0]
+        eih_res = self._eih_camera_resolution
+        eih_dep = self._eih_channels
 
         # todo fine tune resolution
         fov, aspect, nearplane, farplane = 60, 1.0, 0.01, 100
@@ -210,8 +210,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # todo possibly add manipulation of camera position and resolution in method call
     def _getEyeToHandCamera(self):
 
-        eth_res = self._eth_camera_resolution[0]
-        eth_dep = self._eth_channels[0]
+        eth_res = self._eth_camera_resolution
+        eth_dep = self._eth_channels
 
         # todo fine tune positioning and resolution
         camEyePos = [0.03, 0.236, 0.54]
@@ -639,11 +639,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         observation_spec: array_spec.ArraySpec = {}
 
         if self._eih_input:
-            observation_spec.update({'eih_image': array_spec.BoundedArraySpec(shape=(*eih_dep, *eih_res, *eih_res), dtype=np.float32, minimum=0,maximum=255)})
+            observation_spec.update({'eih_image': array_spec.BoundedArraySpec(shape=(eih_dep, eih_res, eih_res), dtype=np.float32, minimum=0,maximum=255)})
 
         
         if self._eth_input:
-            observation_spec.update({'eth_image': array_spec.BoundedArraySpec(shape=(*eth_dep, *eth_res, *eth_res), dtype=np.float32, minimum=0,maximum=255)})
+            observation_spec.update({'eth_image': array_spec.BoundedArraySpec(shape=(eth_dep, eth_res, eth_res), dtype=np.float32, minimum=0,maximum=255)})
             
 
         if self._position_input:
