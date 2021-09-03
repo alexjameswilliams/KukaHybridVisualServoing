@@ -315,7 +315,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         return observation
 
-    # Converts a normalised joint angle value between [0..1] into joint range equivalent radian value
+    # Converts a normalised joint angle value between [0..1] into the joint range-specific equivalent radian value
     def normalisedAction2JointAngles(self, action):
 
         actual_joint_values = []
@@ -332,7 +332,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         return actual_joint_values
 
-    # Normalises the joint angles in radians to a value between [0..1]
+    # Normalises the joint angles in radians to a value between [-1..1]
     def normaliseJointAngles(self, joint_positions):
 
         normalised_values = []
@@ -343,8 +343,15 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Check inputs are within maximum and minimum joint limits and amend if necessary
         lowerLimits, upperLimits = self.getKukaJointLimits
         for joint in np.arange(p.getNumJoints(self._kuka)):
-            normal_value = (joint_positions[joint] / np.abs(upperLimits[joint])) * 0.5
-            normalised_values.append(0.5 + normal_value)
+            normal_value = (joint_positions[joint] / np.abs(upperLimits[joint]))
+
+            # Cap to limits in-case of rounding error
+            if normal_value > 1.0:
+                normal_value = 1.0
+            elif normal_value < -1.0:
+                normal_value = -1.0
+
+            normalised_values.append(normal_value)
 
         return normalised_values
 
