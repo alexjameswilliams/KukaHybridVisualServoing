@@ -33,6 +33,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  renders: bool = False,
                  isDiscrete: bool = False, #todo I could add functionality for this in
                  eih_input: bool = True,
+                 seed: int = None,
                  eth_input: bool = True,
                  position_input: bool = True,
                  velocity_input: bool = True,
@@ -89,7 +90,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             p.connect(p.DIRECT)
         # timinglog = p.startStateLogging(p.STATE_LOGGING_PROFILE_TIMINGS, "kukaTimings.json")
 
-        self.seed()
+        self.seed(seed)
         self._p.setAdditionalSearchPath(pybullet_data.getDataPath())  # todo do I need this and the rooturdf line?
         self._reset()
         self.viewer = None
@@ -556,6 +557,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
     def seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
+        np.random.seed(seed)
         return [seed]
 
 
