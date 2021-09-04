@@ -187,7 +187,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         eih_dep = self._eih_channels
 
         # todo fine tune resolution
-        fov, aspect, nearplane, farplane = 60, 1.0, 0.01, 100
+        fov, aspect, nearplane, farplane = 50, 1.0, 0.01, 100
         projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, nearplane, farplane)
 
         # Center of mass position and orientation (of link-7)
@@ -215,11 +215,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         eth_dep = self._eth_channels
 
         # todo fine tune positioning and resolution
-        camEyePos = [0.03, 0.236, 0.54]
-        distance = 1.06
-        pitch = -56
-        yaw = 258
-        roll = 0
+        camEyePos = [0, 0, 0.1]
+        distance = 1.3
+        pitch = -65
+        yaw = 275
+        roll = 90
         upAxisIndex = 2
         camInfo = p.getDebugVisualizerCamera()
         #print("width,height")
