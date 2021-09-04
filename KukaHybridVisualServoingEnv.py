@@ -223,30 +223,13 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         roll = 90
         upAxisIndex = 2
         camInfo = p.getDebugVisualizerCamera()
-        #print("width,height")
-        #print(camInfo[0])
-        #print(camInfo[1])
-        #print("viewMatrix")
-        #print(camInfo[2])
-        #print("projectionMatrix")
-        #print(camInfo[3])
-        viewMat = camInfo[2]
         viewMat = p.computeViewMatrixFromYawPitchRoll(camEyePos, distance, yaw, pitch, roll, upAxisIndex)
-        """viewMat = [
-            -0.5120397806167603, 0.7171027660369873, -0.47284144163131714, 0.0, -0.8589617609977722,
-            -0.42747554183006287, 0.28186774253845215, 0.0, 0.0, 0.5504802465438843,
-            0.8348482847213745, 0.0, 0.1925382763147354, -0.24935829639434814, -0.4401884973049164, 1.0
-        ]
-        """
-        # projMatrix = camInfo[3]#[0.7499999403953552, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0000200271606445, -1.0, 0.0, 0.0, -0.02000020071864128, 0.0]
         projMatrix = [
             0.75, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, -1.0000200271606445, -1.0, 0.0, 0.0,
             -0.02000020071864128, 0.0
         ]
 
         img_arr = p.getCameraImage(eth_res, eth_res, viewMat, projMatrix)
-        # rgb = img_arr[2]
-        # np_img_arr = np.reshape(rgb, (*self._eth_camera_resolution, *self._eth_camera_resolutionn, 4))
         rgba_data = img_arr[2]
         return self._pixelArray2RGBArray(rgba_data, eth_dep, eth_res)
         # todo add mono image return
@@ -411,6 +394,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         if mode=='human':
             print('Timestep: ' + str(self._timestep_count))
+            print('Goal Pos: ' + str(self.target_position))
             print('End Effector Position: ' + str(self.effector_position))
             print('End Effector Orientation: ' + str(self.effector_orientation))
             print('Reward: ' + str(self.reward))
@@ -577,8 +561,6 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             target_x = np.random.choice(x_ranges)
             target_y = np.random.choice(y_ranges)
             self.target_position = [target_x, target_y]
-
-        print('target pos = ' + str(self.target_position))
 
         # Load URDF file and colour
         visualShapeId = p.createVisualShape(
