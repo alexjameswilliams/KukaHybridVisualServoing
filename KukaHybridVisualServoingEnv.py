@@ -653,4 +653,4 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         """Return action_spec.
         Action spec consists of normalised values for the desired joint positions for the next time step."""
 
-        return array_spec.BoundedArraySpec(shape=(7,), dtype=np.float32, minimum=0.0, maximum=1.0, name='joint positions')
+        return array_spec.BoundedArraySpec(shape=(7,), dtype=np.float32, minimum=-1.0, maximum=1.0, name='joint positions')
