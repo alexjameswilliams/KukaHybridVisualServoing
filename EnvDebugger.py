@@ -2,6 +2,7 @@ import numpy as np
 from KukaHybridVisualServoingEnv import KukaHybridVisualServoingEnv
 from tf_agents.environments.utils import validate_py_environment
 from tf_agents.environments import py_environment
+from PIL import Image
 
 
 def main():
@@ -18,8 +19,18 @@ def main():
 
 
     done = False
+    episode_count = 0
+    timestep = env.reset()
     while (not done):
 
+        if timestep.is_first():
+            episode_count = episode_count + 1
+        elif timestep.is_last():
+            images = env.get_images()
+            eih_im = Image.fromarray(images[0])
+            eth_im = Image.fromarray(images[1])
+            eih_im.save(str(episode_count) + "_EIH.png")
+            eth_im.save(str(episode_count) + "_ETH.png")
         action = []
         for controlId in controlIds:
             action.append(np.deg2rad(env._p.readUserDebugParameter(controlId)))

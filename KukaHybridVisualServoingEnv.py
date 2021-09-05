@@ -61,6 +61,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._eth_input = eth_input
         self._eth_channels = eth_channels
         self._eih_channels = eih_channels
+        self.eih_rgba = []
+        self.eth_rgba = []
         self._position_input = position_input
         self._velocity_input = velocity_input
         self._eih_camera_resolution: int = eih_camera_resolution
@@ -230,9 +232,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         ]
 
         img_arr = p.getCameraImage(eth_res, eth_res, viewMat, projMatrix)
-        rgba_data = img_arr[2]
-        return self._pixelArray2RGBArray(rgba_data, eth_dep, eth_res)
         # todo add mono image return
+        self.eth_rgba = img_arr[2]
+        return self._pixelArray2RGBArray(self.eth_rgba, eth_dep, eth_res)
 
     # Returns all current joint positions and velocities
     def _getJointStates(self):
@@ -406,6 +408,16 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             #print('Distance from Target Position: ' + str(np.abs(effector_position - self.target_position)))
 
         elif mode=='image':
+            return self.get_images()
+
+    # Fetches EIH and / or ETH images if enabled in environment
+    def get_images(self):
+        images = []
+        if self._eih_input and self._eth_input:
+            images.append(self.eih_rgba)
+        if self._eth_input:
+            images.append(self.eth_rgba)
+        return images
 
             # Set render parameters
             cam_dist = 1.0
