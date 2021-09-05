@@ -206,8 +206,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         view_matrix = p.computeViewMatrix(com_p, com_p + 0.1 * camera_vector, up_vector)
         img = p.getCameraImage(eih_res, eih_res, view_matrix,
                                projection_matrix)
-        rgba_data = img[2]
-        return self._pixelArray2RGBArray(rgba_data, eih_dep, eih_res)
+
+        self.eih_rgba = img[2]
+        return self._pixelArray2RGBArray(self.eih_rgba, eih_dep, eih_res)
         # todo add mono image return
 
     # Returns an RGB image from the Eye To Hand camera
