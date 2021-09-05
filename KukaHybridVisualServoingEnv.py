@@ -367,13 +367,14 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Advance simulation and collect observation, reward, and termination data
     def _step(self, action):
 
+        self.action = action
         if self.terminated:
             # The last action ended the episode. Ignore the current action and start a new episode.
             return self.reset()
 
         # Set target position to move towards
-        jointPositionTarget = self.normalisedAction2JointAngles(action)
-        self.setKukaJointAngles(jointPositionTarget)
+        target_joint_position = self.normalisedAction2JointAngles(self.action)
+        self.setKukaJointAngles(target_joint_position)
 
         # Advance Simulation by 1 Environment timestep (by advancing through X SIMULATION_STEPS_PER_TIMESTEP)
         for step in np.arange(0, SIMULATION_STEPS_PER_TIMESTEP):
@@ -383,14 +384,15 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         #todo check that reward and termination are in right order and doing the right things
         self._termination()
-        observation = self.getObservation()
+        self._observation = self.getObservation()
         self.reward = self._reward(self.reward_goal, self.reward_collision, self.reward_time, self.reward_rotation, self.reward_position)
 
         #todo check that these returns are correct re: reward and discount
         if self.terminated:
-            return ts.termination(observation=observation, reward=self.reward)
+            self.render()
+            return ts.termination(observation=self._observation, reward=self.reward)
         else:
-            return ts.transition(observation=observation, reward=self.reward, discount=self.discount)
+            return ts.transition(observation=self._observation, reward=self.reward, discount=self.discount)
 
     def render(self, mode='human'):
 
@@ -399,6 +401,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             print('Goal Pos: ' + str(self.target_position))
             print('End Effector Position: ' + str(self.effector_position))
             print('End Effector Orientation: ' + str(self.effector_orientation))
+            print('Input Action: ' + str(self.action))
             print('Reward: ' + str(self.reward))
             print('Terminate: ' + str(self.terminated))
             print()
