@@ -22,6 +22,7 @@ def main():
         controlIds.append(env._p.addUserDebugParameter("A", np.rad2deg(lowerLimits[jointIndex]),-np.rad2deg(lowerLimits[jointIndex]),0))
 
 
+    # Export 3 episodes for .mp4 videi
     num_episodes = 3
     eih_video_filename = 'eih.mp4'
     eth_video_filename = 'eth.mp4'
@@ -45,7 +46,7 @@ def main():
     embed_mp4(eih_video_filename)
     embed_mp4(eth_video_filename)
 
-
+    # Combine videos into one side by side video
     os.system("ffmpeg -i eih.mp4 -i eth.mp4 -filter_complex \"hstack,format=yuv420p\" -c:v libx264 -crf 18 output.mp4")
 
 
@@ -64,25 +65,6 @@ def main():
             eth_im = Image.fromarray(images[1])
             eih_im.save(str(episode_count) + "_EIH.png")
             eth_im.save(str(episode_count) + "_ETH.png")
-
-            byteframes = []
-            for img in eih_imgs:
-                byte = BytesIO()
-                byteframes.append(byte)
-                img.save(byte, format="GIF")
-            gifs = [Image.open(byteframe) for byteframe in byteframes]
-            gifs[0].save(str(episode_count) + "_EIH.gif", append_images=eih_imgs[1:])
-
-            for img in eth_imgs:
-                byte = BytesIO()
-                byteframes.append(byte)
-                img.save(byte, format="GIF")
-            gifs = [Image.open(byteframe) for byteframe in byteframes]
-            gifs[0].save(str(episode_count) + "_ETH.gif", append_images=eth_imgs[1:])
-
-        images = env.get_images()
-        eih_imgs.append(Image.fromarray(images[0]))
-        eth_imgs.append(Image.fromarray(images[1]))
 
         action = []
         for controlId in controlIds:
