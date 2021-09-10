@@ -189,7 +189,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         eih_res = self._eih_camera_resolution
         eih_dep = self._eih_channels
 
-        # todo fine tune resolution
+        # Set up camera positioning
         fov, aspect, nearplane, farplane = 50, 1.0, 0.01, 100
         projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, nearplane, farplane)
 
@@ -218,7 +218,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         eth_res = self._eth_camera_resolution
         eth_dep = self._eth_channels
 
-        # todo fine tune positioning and resolution
+        # Set up camera positioning
         camEyePos = [0, 0, 0.1]
         distance = 1.3
         pitch = -65
