@@ -126,6 +126,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._observation = self.getObservation()
         return ts.restart(observation=self._observation)
 
+    def close(self):
+        if self._pybullet_client:
+            self._pybullet_client.disconnect()
+            self._pybullet_client = None
+            
 
     @property
     # Returns the Kuka's current joint state including Position, Velocity,
