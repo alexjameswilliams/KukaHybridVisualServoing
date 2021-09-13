@@ -395,7 +395,6 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         #todo check that these returns are correct re: reward and discount
         if self.terminated:
-            self.render()
             return ts.termination(observation=self._observation, reward=self.reward)
         else:
             return ts.transition(observation=self._observation, reward=self.reward, discount=self.discount)
