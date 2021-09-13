@@ -65,27 +65,35 @@ RGB = 3
 env = None
 
 
-def train_new_model(hyperparameters, experiment)
+def train_new_model(hyperparameters, experiment):
     #############################################################################################
     #################### Initialise Environment #################################################
     #############################################################################################
 
     # Initialise Environment
     collect_env = KukaHybridVisualServoingEnv(renders=False, isDiscrete=False,
-                                              eih_input=eih_input, eth_input=eth_input, position_input=position_input,
-                                              velocity_input=velocity_input,
-                                              eih_camera_resolution=eih_resolution,
-                                              eth_camera_resolution=eth_resolution, eth_channels=eth_channels,
-                                              eih_channels=eih_channels,
-                                              timesteps=collect_steps_per_iteration)
+                                              eih_input=hyperparameters['eih_input'],
+                                              eth_input=hyperparameters['eth_input'],
+                                              position_input=hyperparameters['position_input'],
+                                              velocity_input=hyperparameters['velocity_input'],
+                                              eih_camera_resolution=hyperparameters['eih_resolution'],
+                                              eth_camera_resolution=hyperparameters['eth_resolution'],
+                                              eth_channels=hyperparameters['eth_channels'],
+                                              eih_channels=hyperparameters['eih_channels'],
+                                              timesteps=hyperparameters['collect_steps_per_iteration'],
+                                              seed=hyperparameters['seed'])
 
     eval_env = KukaHybridVisualServoingEnv(renders=False, isDiscrete=False,
-                                           eih_input=eih_input, eth_input=eth_input, position_input=position_input,
-                                           velocity_input=velocity_input,
-                                           eih_camera_resolution=eih_resolution,
-                                           eth_camera_resolution=eth_resolution, eth_channels=eth_channels,
-                                           eih_channels=eih_channels,
-                                           timesteps=collect_steps_per_iteration)
+                                           eih_input=hyperparameters['eih_input'],
+                                           eth_input=hyperparameters['eth_input'],
+                                           position_input=hyperparameters['position_input'],
+                                           velocity_input=hyperparameters['velocity_input'],
+                                           eih_camera_resolution=hyperparameters['eih_resolution'],
+                                           eth_camera_resolution=hyperparameters['eth_resolution'],
+                                           eth_channels=hyperparameters['eth_channels'],
+                                           eih_channels=hyperparameters['eih_channels'],
+                                           timesteps=hyperparameters['collect_steps_per_iteration'],
+                                           seed=hyperparameters['seed'])
 
     # Verify Environment specs work as intended
     print('Validating Environments')
@@ -98,12 +106,12 @@ def train_new_model(hyperparameters, experiment)
     # time_limit_env = tf_agents.environments.wrappers.TimeLimit(env, )
 
     # Seed Environment (inspired by https://medium.com/@ODSC/properly-setting-the-random-seed-in-ml-experiments-not-as-simple-as-you-might-imagine-219969c84752)
-    collect_env.seed(seed=seed)
-    eval_env.seed(seed=seed)
+    collect_env.seed(seed=hyperparameters['seed'])
+    eval_env.seed(seed=hyperparameters['seed'])
 
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    np.random.seed(seed)
-    tf.random.set_seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(hyperparameters['seed'])
+    np.random.seed(hyperparameters['seed'])
+    tf.random.set_seed(hyperparameters['seed'])
 
     ####################################
     ####### Picking a Strategy #########
@@ -212,16 +220,16 @@ def train_new_model(hyperparameters, experiment)
             actor_network=actor_net,
             critic_network=critic_net,
             actor_optimizer=tf.compat.v1.train.AdamOptimizer(
-                learning_rate=actor_learning_rate),
+                learning_rate=hyperparameters['actor_learning_rate']),
             critic_optimizer=tf.compat.v1.train.AdamOptimizer(
-                learning_rate=critic_learning_rate),
+                learning_rate=hyperparameters['critic_learning_rate']),
             alpha_optimizer=tf.compat.v1.train.AdamOptimizer(
-                learning_rate=alpha_learning_rate),
-            target_update_tau=target_update_tau,
-            target_update_period=target_update_period,
+                learning_rate=hyperparameters['alpha_learning_rate']),
+            target_update_tau=hyperparameters['target_update_tau'],
+            target_update_period=hyperparameters['target_update_period'],
             td_errors_loss_fn=tf.math.squared_difference,
-            gamma=gamma,
-            reward_scale_factor=reward_scale_factor,
+            gamma=hyperparameters['gamma'],
+            reward_scale_factor=hyperparameters['reward_scale_factor'],
             train_step_counter=train_step)
 
         tf_agent.initialize()
@@ -236,7 +244,7 @@ def train_new_model(hyperparameters, experiment)
     table_name = 'uniform_table'
     table = reverb.Table(
         table_name,
-        max_size=replay_buffer_capacity,
+        max_size=hyperparameters['replay_buffer_capacity'],
         sampler=reverb.selectors.Uniform(),
         remover=reverb.selectors.Fifo(),
         rate_limiter=reverb.rate_limiters.MinSize(1))
@@ -250,7 +258,7 @@ def train_new_model(hyperparameters, experiment)
         local_server=reverb_server)
 
     dataset = reverb_replay.as_dataset(
-        sample_batch_size=batch_size, num_steps=2).prefetch(50)
+        sample_batch_size=hyperparameters['batch_size'], num_steps=2).prefetch(50)
     experience_dataset_fn = lambda: dataset
 
     #############################################
@@ -287,7 +295,7 @@ def train_new_model(hyperparameters, experiment)
         collect_env,
         random_policy,
         train_step,
-        steps_per_run=initial_collect_steps,
+        steps_per_run=hyperparameters['initial_collect_steps'],
         observers=[rb_observer])
     initial_collect_actor.run()
 
@@ -307,8 +315,8 @@ def train_new_model(hyperparameters, experiment)
         eval_env,
         eval_policy,
         train_step,
-        episodes_per_run=num_eval_episodes,
-        metrics=actor.eval_metrics(num_eval_episodes),
+        episodes_per_run=hyperparameters['num_eval_episodes'],
+        metrics=actor.eval_metrics(hyperparameters['num_eval_episodes']),
         summary_dir=os.path.join(tempdir, 'eval'),
     )
 
@@ -326,7 +334,7 @@ def train_new_model(hyperparameters, experiment)
             saved_model_dir,
             tf_agent,
             train_step,
-            interval=policy_save_interval),
+            interval=hyperparameters['policy_save_interval']),
         triggers.StepPerSecondLogTrigger(train_step, interval=1000),
     ]
 
@@ -361,54 +369,6 @@ def train_new_model(hyperparameters, experiment)
         print('step = {0}: {1}'.format(step, eval_results))
         # experiment.log_metric("loss",loss_val,step=step)
 
-    ###################################
-    # Log Hyperparameters to Comet ML #
-    ###################################
-
-    params = {
-        "num_iterations": num_iterations,
-        "initial_collect_steps": initial_collect_steps,
-        "collect_steps_per_iteration": collect_steps_per_iteration,
-        "num_eval_episodes": num_eval_episodes,
-        "eval_interval": eval_interval,
-        "policy_save_interval": policy_save_interval,
-        "log_interval": log_interval,
-        "replay_buffer_capacity": replay_buffer_capacity,
-        "batch_size": batch_size,
-        "seed": seed,
-
-        "critic_learning_rate": critic_learning_rate,
-        "actor_learning_rate": actor_learning_rate,
-        "alpha_learning_rate": alpha_learning_rate,
-        "target_update_tau": target_update_tau,
-        "target_update_period": target_update_period,
-        "gamma": gamma,
-        "reward_scale_factor": reward_scale_factor,
-
-        # Model Hyperparameters
-        "eih_input": eih_input,
-        "eth_input": eth_input,
-        "position_input": position_input,
-        "velocity_input": velocity_input,
-        "combined_actor_critic": combined_actor_critic,
-        "eih_resolution": eih_resolution,
-        "eth_resolution": eth_resolution,
-        "eih_channels": eih_channels,
-        "eth_channels": eth_channels,
-        "hidden_activation": hidden_activation,
-        "hidden_kernel_initializer": hidden_kernel_initializer,
-        "hidden_bias_initializer": hidden_bias_initializer,
-        "output_activation": output_activation,
-        "output_kernal_initializer": output_kernal_initializer,
-        "output_bias_initializer": output_bias_initializer,
-        "mlp1_node_params": mlp1_node_params,
-        "mlp2_node_params": mlp2_node_params,
-        "cnn_node_params": cnn_node_params
-    }
-
-    # Log Single Experiment
-    # experiment.log_parameters(params)
-
     ######################################
     ############# Begin Training##########
     ######################################
@@ -420,7 +380,7 @@ def train_new_model(hyperparameters, experiment)
     avg_return = get_eval_metrics()["AverageReturn"]
     returns = [avg_return]
 
-    for _ in range(num_iterations):
+    for _ in range(hyperparameters['num_iterations']):
         # Training.
         collect_actor.run()
         loss_info = agent_learner.run(iterations=1)
@@ -430,13 +390,13 @@ def train_new_model(hyperparameters, experiment)
         experiment.set_step(step)
         print('Step: ' + str(step))
 
-        if eval_interval and step % eval_interval == 0:
+        if hyperparameters['eval_interval'] and step % hyperparameters['eval_interval'] == 0:
             metrics = get_eval_metrics()
             log_eval_metrics(step, metrics)
             experiment.log_metrics(metrics)
             returns.append(metrics["AverageReturn"])
 
-        if log_interval and step % log_interval == 0:
+        if hyperparameters['log_interval'] and step % hyperparameters['log_interval'] == 0:
             print('step = {0}: loss = {1}'.format(step, loss_info.loss.numpy()))
 
     # Evaluate the agent's policy once before training.
@@ -472,7 +432,7 @@ def train_new_model(hyperparameters, experiment)
     os.system(
         "ffmpeg -i eih.mp4 -i eth.mp4 -filter_complex \"hstack,format=yuv420p\" -c:v libx264 -crf 18 " + video_name)
 
-    log_asset(self, video_name, step=None, overwrite=None, context=None, ftype='video', metadata=None
+    experiment.log_asset(video_name, step=None, overwrite=None, context=None, ftype='video', metadata=None)
 
     # Closer reverb server before exiting
     rb_observer.close()
@@ -504,8 +464,108 @@ def embed_mp4(filename):
     return IPython.display.HTML(tag)
 
 
-def run_experiments()
+def run_single_experiment():
+    experiment = Experiment(api_key="HuSYxK8BJTK8MbTWpZIvnh91i",
+                            project_name="kukahybridvs",
+                            workspace="alexjameswilliams",
+                            log_code=True)
 
+    # Set Default Hyperparameters
+    # Training Hyperparameters
+    num_iterations = 100000
+    initial_collect_steps = 10000  # @param {type:"integer"}
+    collect_steps_per_iteration = 20  # @param {type:"integer"}
+    num_eval_episodes = 20  # @param {type:"integer"}
+    eval_interval = 10000  # @param {type:"integer"}
+    policy_save_interval = 5000  # @param {type:"integer"}
+    log_interval = 5000  # @param {type:"integer"}
+    replay_buffer_capacity = 10000  # @param {type:"integer"}
+    batch_size = 256
+    seed = 1234567
+
+    # RL Hyperparameters
+    critic_learning_rate = 3e-4  # @param {type:"number"}
+    actor_learning_rate = 3e-4  # @param {type:"number"}
+    alpha_learning_rate = 3e-4  # @param {type:"number"}
+    target_update_tau = 0.005  # @param {type:"number"}
+    target_update_period = 1  # @param {type:"number"}
+    gamma = 0.99  # @param {type:"number"}
+    reward_scale_factor = 1.0  # @param {type:"number"}
+
+    # Environment Hyperparameters
+    eih_input = True  # Set to true to include input from EIH Camera in environment / network
+    eth_input = True  # Set to true to include input from ETH Camera in environment / network
+    position_input = True  # Set to true to include input from position sensors in environment / network
+    velocity_input = True  # Set to true to include input from velocity sensors in environment / network
+    combined_actor_critic = False
+    eih_resolution = SD_IMAGE_RESOLUTION
+    eth_resolution = SD_IMAGE_RESOLUTION
+    eih_channels = RGB
+    eth_channels = RGB
+
+    # Model Hyperparameters
+    hidden_activation = tf.keras.activations.relu
+    hidden_kernel_initializer = tf.keras.initializers.random_normal
+    hidden_bias_initializer = tf.keras.initializers.zeros
+    output_activation = tf.keras.activations.tanh
+    output_kernal_initializer = tf.keras.initializers.random_normal
+    output_bias_initializer = tf.keras.initializers.zeros
+    mlp1_node_params = [32, 64]  # Format: [l1_nodes,....,ln_nodes]
+    mlp2_node_params = [256, 64]  # Format: [l1_nodes,....,ln_nodes]
+    cnn_node_params = [[32, 3], [32, 3]]  # Format: [[l1_filters,l1_kernel_size]...[ln_filters,ln_kernel_size]]
+
+    # Get Hyperparameters for this experimental run
+    hyperparameters = {
+        'num_iterations': num_iterations,
+        'initial_collect_steps': initial_collect_steps,
+        'collect_steps_per_iteration': collect_steps_per_iteration,
+        'num_eval_episodes': num_eval_episodes,
+        'eval_interval': eval_interval,
+        'policy_save_interval': policy_save_interval,
+        'log_interval': log_interval,
+        'replay_buffer_capacity': replay_buffer_capacity,
+        'batch_size': batch_size,
+        'seed': seed,
+
+        # RL Hyperparameters
+        'critic_learning_rate': critic_learning_rate,
+        'actor_learning_rate': actor_learning_rate,
+        'alpha_learning_rate': alpha_learning_rate,
+        'target_update_tau': target_update_tau,
+        'target_update_period': target_update_period,
+        'gamma': gamma,
+        'reward_scale_factor': reward_scale_factor,
+
+        # Environment Hyperparameters
+        'eih_input': eih_input,
+        'eth_input': eth_input,
+        'position_input': position_input,
+        'velocity_input': velocity_input,
+        'combined_actor_critic': combined_actor_critic,
+        'eih_resolution': eih_resolution,
+        'eth_resolution': eth_resolution,
+        'eih_channels': eih_channels,
+        'eth_channels': eth_channels,
+
+        # Model Hyperparameters
+        'hidden_activation': hidden_activation,
+        'hidden_kernel_initializer': hidden_kernel_initializer,
+        'hidden_bias_initializer': hidden_bias_initializer,
+        'output_activation': output_activation,
+        'output_kernal_initializer': output_kernal_initializer,
+        'output_bias_initializer': output_bias_initializer,
+        'mlp1_node_params': mlp1_node_params,
+        'mlp2_node_param': mlp2_node_params,
+        'cnn_node_params': cnn_node_params
+    }
+
+    experiment.log_parameters(hyperparameters)
+    train_new_model(hyperparameters, experiment)
+
+    experiment.end()
+
+
+def run_experiments():
     # Set Default Hyperparameters
     # Training Hyperparameters
     num_iterations = 100000
@@ -552,17 +612,17 @@ def run_experiments()
 
     # Specify Random search Parameters and optimiser algorithm
     config = {
-        # We pick the Bayes algorithm:
+
+        "name": "rl-hyperparameters-optimisation-1",
         "algorithm": "bayes",
 
         # Declare your hyperparameters in the Vizier-inspired format:
         "parameters": {
-            "NUM_ITERATIONS"
-
-
-            "HIDDEN_DIM": {"type": "integer", "min": 8, "max": 128},
-            "DROPOUT": {"type": "float", "min": 0.0, "max": 1.0},
-            "LINEAR_DIM": {"type": "integer", "scalingType": "Linear", "min": 8, "max": 64}
+            "critic_learning_rate": {"type": "float", "min": 3e-5, "max": 3e-2, "scalingType": "loguniform"},
+            "actor_learning_rate": {"type": "float", "min": 3e-5, "max": 3e-2, "scalingType": "loguniform"},
+            "alpha_learning_rate": {"type": "float", "min": 0.00001, "max": 0.1, "scalingType": "loguniform"},
+            "target_update_tau": {"type": "float", "min": 0.0, "max": 0.1, "scalingType": "loguniform"},
+            "gamma": {"type": "float", "min": 0.9, "max": 0.999, "scalingType": "loguniform"},
         },
 
         # Declare what we will be optimizing, and how:
@@ -574,19 +634,18 @@ def run_experiments()
     }
 
     # Instantiate Optimiser / Experiment
-    opt = Optimizer(config, trials=20,
+    opt = Optimizer(config, trials=1,
                     api_key="HuSYxK8BJTK8MbTWpZIvnh91i",
                     project_name="kukahybridvs",
                     workspace="alexjameswilliams",
                     log_code=True)
 
     for experiment in opt.get_experiments():
-        experiment.add_tag("smaller_model_three_hyperparameters_opt")
+        experiment.add_tag("rl-hyperparameters-optimisation-1")
         # Call the function that wraps the Neural Network code to start the experiment
 
         # Get Hyperparameters for this experimental run
         hyperparameters = {
-            'hidden_dim': experiment.get_parameter("HIDDEN_DIM")
             'num_iterations': num_iterations,
             'initial_collect_steps': initial_collect_steps,
             'collect_steps_per_iteration': collect_steps_per_iteration,
@@ -599,12 +658,12 @@ def run_experiments()
             'seed': seed,
 
             # RL Hyperparameters
-            'critic_learning_rate': critic_learning_rate,
-            'actor_learning_rate': actor_learning_rate,
-            'alpha_learning_rate': alpha_learning_rate,
-            'target_update_tau': target_update_tau,
+            'critic_learning_rate': experiment.get_parameter('critic_learning_rate'),
+            'actor_learning_rate': experiment.get_parameter('actor_learning_rate'),
+            'alpha_learning_rate': experiment.get_parameter('alpha_learning_rate'),
+            'target_update_tau': experiment.get_parameter('target_update_tau'),
             'target_update_period': target_update_period,
-            'gamma': gamma,
+            'gamma': experiment.get_parameter('gamma'),
             'reward_scale_factor': reward_scale_factor,
 
             # Environment Hyperparameters
@@ -632,7 +691,14 @@ def run_experiments()
 
         experiment.log_parameters(hyperparameters)
 
+        print('Beginning Experiment')
+        print(hyperparameters)
+
         # Start Experiments
-        avg_return = self.train_new_model(hyperparameters, experiment)
+        avg_return = train_new_model(hyperparameters, experiment)
         experiment.log_metric("AverageReturn", avg_return)
 
+
+if __name__ == "__main__":
+    # run_experiments()
+    run_single_experiment()
