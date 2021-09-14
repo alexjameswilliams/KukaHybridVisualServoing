@@ -421,15 +421,6 @@ def train_new_model(hyperparameters, experiment):
 
     return avg_return
 
-    # Terminate Comet ML Logging
-    # experiment.end()
-
-
-# steps = range(0, num_iterations + 1, eval_interval)
-# plt.plot(steps, returns)
-# plt.ylabel('Average Return')
-# plt.xlabel('Step')
-# plt.ylim()
 
 
 def embed_mp4(filename):
@@ -443,6 +434,7 @@ def embed_mp4(filename):
   </video>'''.format(b64.decode())
 
     return IPython.display.HTML(tag)
+
 
 # Render a video
 def record_video(actor, env, video_name=None):
