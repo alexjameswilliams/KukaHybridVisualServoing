@@ -486,7 +486,6 @@ def run_single_experiment():
   initial_collect_steps = 10000  # @param {type:"integer"}
   collect_steps_per_iteration = 20  # @param {type:"integer"}
   num_eval_episodes = 20  # @param {type:"integer"}
-  eval_interval = 10000  # @param {type:"integer"}
   policy_save_interval = 5000  # @param {type:"integer"}
   log_interval = 5000  # @param {type:"integer"}
   replay_buffer_capacity = 10000  # @param {type:"integer"}
@@ -530,7 +529,6 @@ def run_single_experiment():
     'initial_collect_steps': initial_collect_steps,
     'collect_steps_per_iteration': collect_steps_per_iteration,
     'num_eval_episodes': num_eval_episodes,
-    'eval_interval': eval_interval,
     'policy_save_interval': policy_save_interval,
     'log_interval': log_interval,
     'replay_buffer_capacity': replay_buffer_capacity,
@@ -582,7 +580,6 @@ def run_experiments():
     initial_collect_steps = 10000  # @param {type:"integer"}
     collect_steps_per_iteration = 20  # @param {type:"integer"}
     num_eval_episodes = 20  # @param {type:"integer"}
-    eval_interval = 10000  # @param {type:"integer"}
     policy_save_interval = 5000  # @param {type:"integer"}
     log_interval = 5000  # @param {type:"integer"}
     replay_buffer_capacity = 10000  # @param {type:"integer"}
@@ -661,7 +658,6 @@ def run_experiments():
             'initial_collect_steps': initial_collect_steps,
             'collect_steps_per_iteration': collect_steps_per_iteration,
             'num_eval_episodes': num_eval_episodes,
-            'eval_interval': eval_interval,
             'policy_save_interval': policy_save_interval,
             'log_interval': log_interval,
             'replay_buffer_capacity': replay_buffer_capacity,
