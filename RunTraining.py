@@ -297,6 +297,7 @@ def train_new_model(hyperparameters, experiment):
         train_step,
         steps_per_run=hyperparameters['initial_collect_steps'],
         observers=[rb_observer])
+    print('Initial Collection')
     initial_collect_actor.run()
 
     # Instantiate an Actor with the collect policy to gather more experiences during training.
@@ -363,11 +364,11 @@ def train_new_model(hyperparameters, experiment):
     metrics = get_eval_metrics()
 
     # todo add comet.ml logging
-    def log_eval_metrics(step, metrics):
+    def log_eval_metrics(step, metrics, experiment):
         eval_results = (', ').join(
             '{} = {:.6f}'.format(name, result) for name, result in metrics.items())
         print('step = {0}: {1}'.format(step, eval_results))
-        # experiment.log_metric("loss",loss_val,step=step)
+        experiment.log_metrics(eval_results, step=step)
 
     ######################################
     ############# Begin Training##########
@@ -380,6 +381,7 @@ def train_new_model(hyperparameters, experiment):
     avg_return = get_eval_metrics()["AverageReturn"]
     returns = [avg_return]
 
+    # Beginning Training
     for _ in range(hyperparameters['num_iterations']):
         # Training.
         collect_actor.run()
@@ -387,31 +389,26 @@ def train_new_model(hyperparameters, experiment):
 
         # Evaluating.
         step = agent_learner.train_step_numpy
-        experiment.set_step(step)
-        print('Step: ' + str(step))
 
-        if hyperparameters['eval_interval'] and step % hyperparameters['eval_interval'] == 0:
-            metrics = get_eval_metrics()
-            log_eval_metrics(step, metrics)
-            experiment.log_metrics(metrics)
-            returns.append(metrics["AverageReturn"])
+
+        if step % 100 == 0:
+          print('Step: ' + str(step))
 
         if hyperparameters['log_interval'] and step % hyperparameters['log_interval'] == 0:
-            print('step = {0}: loss = {1}'.format(step, loss_info.loss.numpy()))
-
-    # Evaluate the agent's policy once before training.
-    avg_return = get_eval_metrics()["AverageReturn"]
-
 
           experiment.set_step(step)
           metrics = get_eval_metrics()
           returns.append(metrics["AverageReturn"])
           log_eval_metrics(metrics)
 
+          print('step = {0}: loss = {1}'.format(step, loss_info.loss.numpy()))
+          experiment.log_metric("loss",loss_info.loss.numpy(), step=step)
 
           video_file_name = record_video()
           experiment.log_asset(video_file_name, step=None, overwrite=None, context=None, ftype='video', metadata=None)
 
+    # Evaluate the agent's policy once before training.
+    avg_return = get_eval_metrics()["AverageReturn"]
 
     video_file_name = record_video(eval_actor, eval_env, video_name = 'final')
     experiment.log_asset(video_file_name, step=None, overwrite=None, context=None, ftype='video', metadata=None)
