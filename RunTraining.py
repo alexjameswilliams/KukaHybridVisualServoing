@@ -481,107 +481,109 @@ def record_video(actor, env, video_name=None):
 
 
 def run_single_experiment():
-    experiment = Experiment(api_key="HuSYxK8BJTK8MbTWpZIvnh91i",
-                            project_name="kukahybridvs",
-                            workspace="alexjameswilliams",
-                            log_code=True)
 
-    # Set Default Hyperparameters
-    # Training Hyperparameters
-    num_iterations = 100000
-    initial_collect_steps = 10000  # @param {type:"integer"}
-    collect_steps_per_iteration = 20  # @param {type:"integer"}
-    num_eval_episodes = 20  # @param {type:"integer"}
-    eval_interval = 10000  # @param {type:"integer"}
-    policy_save_interval = 5000  # @param {type:"integer"}
-    log_interval = 5000  # @param {type:"integer"}
-    replay_buffer_capacity = 10000  # @param {type:"integer"}
-    batch_size = 256
-    seed = 1234567
+  experiment = Experiment(api_key="HuSYxK8BJTK8MbTWpZIvnh91i",
+                  project_name="kukahybridvs",
+                  workspace="alexjameswilliams",
+                  log_code=True)
+
+
+  # Set Default Hyperparameters
+  # Training Hyperparameters
+  num_iterations = 100000
+  initial_collect_steps = 10000  # @param {type:"integer"}
+  collect_steps_per_iteration = 20  # @param {type:"integer"}
+  num_eval_episodes = 20  # @param {type:"integer"}
+  eval_interval = 10000  # @param {type:"integer"}
+  policy_save_interval = 5000  # @param {type:"integer"}
+  log_interval = 5000  # @param {type:"integer"}
+  replay_buffer_capacity = 10000  # @param {type:"integer"}
+  batch_size = 256
+  seed = 1234567
+
+  # RL Hyperparameters
+  critic_learning_rate = 3e-4  # @param {type:"number"}
+  actor_learning_rate = 3e-4  # @param {type:"number"}
+  alpha_learning_rate = 3e-4  # @param {type:"number"}
+  target_update_tau = 0.005  # @param {type:"number"}
+  target_update_period = 1  # @param {type:"number"}
+  gamma = 0.99  # @param {type:"number"}
+  reward_scale_factor = 1.0  # @param {type:"number"}
+
+  # Environment Hyperparameters
+  eih_input = True  # Set to true to include input from EIH Camera in environment / network
+  eth_input = True  # Set to true to include input from ETH Camera in environment / network
+  position_input = True  # Set to true to include input from position sensors in environment / network
+  velocity_input = True  # Set to true to include input from velocity sensors in environment / network
+  combined_actor_critic = False
+  eih_resolution = SD_IMAGE_RESOLUTION
+  eth_resolution = SD_IMAGE_RESOLUTION
+  eih_channels = RGB
+  eth_channels = RGB
+
+  # Model Hyperparameters
+  hidden_activation = tf.keras.activations.relu
+  hidden_kernel_initializer = tf.keras.initializers.random_normal
+  hidden_bias_initializer = tf.keras.initializers.zeros
+  output_activation = tf.keras.activations.tanh
+  output_kernal_initializer = tf.keras.initializers.random_normal
+  output_bias_initializer = tf.keras.initializers.zeros
+  mlp1_node_params = [32, 64]  # Format: [l1_nodes,....,ln_nodes]
+  mlp2_node_params = [256, 64]  # Format: [l1_nodes,....,ln_nodes]
+  cnn_node_params = [[32, 3], [32, 3]]  # Format: [[l1_filters,l1_kernel_size]...[ln_filters,ln_kernel_size]]
+
+  # Get Hyperparameters for this experimental run
+  hyperparameters = {
+    'num_iterations': num_iterations,
+    'initial_collect_steps': initial_collect_steps,
+    'collect_steps_per_iteration': collect_steps_per_iteration,
+    'num_eval_episodes': num_eval_episodes,
+    'eval_interval': eval_interval,
+    'policy_save_interval': policy_save_interval,
+    'log_interval': log_interval,
+    'replay_buffer_capacity': replay_buffer_capacity,
+    'batch_size': batch_size,
+    'seed': seed,
 
     # RL Hyperparameters
-    critic_learning_rate = 3e-4  # @param {type:"number"}
-    actor_learning_rate = 3e-4  # @param {type:"number"}
-    alpha_learning_rate = 3e-4  # @param {type:"number"}
-    target_update_tau = 0.005  # @param {type:"number"}
-    target_update_period = 1  # @param {type:"number"}
-    gamma = 0.99  # @param {type:"number"}
-    reward_scale_factor = 1.0  # @param {type:"number"}
+    'critic_learning_rate': critic_learning_rate,
+    'actor_learning_rate': actor_learning_rate,
+    'alpha_learning_rate': alpha_learning_rate,
+    'target_update_tau': target_update_tau,
+    'target_update_period': target_update_period,
+    'gamma': gamma,
+    'reward_scale_factor': reward_scale_factor,
 
     # Environment Hyperparameters
-    eih_input = True  # Set to true to include input from EIH Camera in environment / network
-    eth_input = True  # Set to true to include input from ETH Camera in environment / network
-    position_input = True  # Set to true to include input from position sensors in environment / network
-    velocity_input = True  # Set to true to include input from velocity sensors in environment / network
-    combined_actor_critic = False
-    eih_resolution = SD_IMAGE_RESOLUTION
-    eth_resolution = SD_IMAGE_RESOLUTION
-    eih_channels = RGB
-    eth_channels = RGB
+    'eih_input': eih_input,
+    'eth_input': eth_input,
+    'position_input': position_input,
+    'velocity_input': velocity_input,
+    'combined_actor_critic': combined_actor_critic,
+    'eih_resolution': eih_resolution,
+    'eth_resolution': eth_resolution,
+    'eih_channels': eih_channels,
+    'eth_channels': eth_channels,
 
     # Model Hyperparameters
-    hidden_activation = tf.keras.activations.relu
-    hidden_kernel_initializer = tf.keras.initializers.random_normal
-    hidden_bias_initializer = tf.keras.initializers.zeros
-    output_activation = tf.keras.activations.tanh
-    output_kernal_initializer = tf.keras.initializers.random_normal
-    output_bias_initializer = tf.keras.initializers.zeros
-    mlp1_node_params = [32, 64]  # Format: [l1_nodes,....,ln_nodes]
-    mlp2_node_params = [256, 64]  # Format: [l1_nodes,....,ln_nodes]
-    cnn_node_params = [[32, 3], [32, 3]]  # Format: [[l1_filters,l1_kernel_size]...[ln_filters,ln_kernel_size]]
+    'hidden_activation': hidden_activation,
+    'hidden_kernel_initializer': hidden_kernel_initializer,
+    'hidden_bias_initializer': hidden_bias_initializer,
+    'output_activation': output_activation,
+    'output_kernal_initializer': output_kernal_initializer,
+    'output_bias_initializer': output_bias_initializer,
+    'mlp1_node_params': mlp1_node_params,
+    'mlp2_node_param': mlp2_node_params,
+    'cnn_node_params': cnn_node_params
+  }
 
-    # Get Hyperparameters for this experimental run
-    hyperparameters = {
-        'num_iterations': num_iterations,
-        'initial_collect_steps': initial_collect_steps,
-        'collect_steps_per_iteration': collect_steps_per_iteration,
-        'num_eval_episodes': num_eval_episodes,
-        'eval_interval': eval_interval,
-        'policy_save_interval': policy_save_interval,
-        'log_interval': log_interval,
-        'replay_buffer_capacity': replay_buffer_capacity,
-        'batch_size': batch_size,
-        'seed': seed,
-
-        # RL Hyperparameters
-        'critic_learning_rate': critic_learning_rate,
-        'actor_learning_rate': actor_learning_rate,
-        'alpha_learning_rate': alpha_learning_rate,
-        'target_update_tau': target_update_tau,
-        'target_update_period': target_update_period,
-        'gamma': gamma,
-        'reward_scale_factor': reward_scale_factor,
-
-        # Environment Hyperparameters
-        'eih_input': eih_input,
-        'eth_input': eth_input,
-        'position_input': position_input,
-        'velocity_input': velocity_input,
-        'combined_actor_critic': combined_actor_critic,
-        'eih_resolution': eih_resolution,
-        'eth_resolution': eth_resolution,
-        'eih_channels': eih_channels,
-        'eth_channels': eth_channels,
-
-        # Model Hyperparameters
-        'hidden_activation': hidden_activation,
-        'hidden_kernel_initializer': hidden_kernel_initializer,
-        'hidden_bias_initializer': hidden_bias_initializer,
-        'output_activation': output_activation,
-        'output_kernal_initializer': output_kernal_initializer,
-        'output_bias_initializer': output_bias_initializer,
-        'mlp1_node_params': mlp1_node_params,
-        'mlp2_node_param': mlp2_node_params,
-        'cnn_node_params': cnn_node_params
-    }
-
-    experiment.log_parameters(hyperparameters)
-    train_new_model(hyperparameters, experiment)
-
-    experiment.end()
+  experiment.log_parameters(hyperparameters)
+  train_new_model(hyperparameters, experiment)
+  experiment.end()
 
 
 def run_experiments():
+
     # Set Default Hyperparameters
     # Training Hyperparameters
     num_iterations = 100000
@@ -657,6 +659,7 @@ def run_experiments():
                     log_code=True)
 
     for experiment in opt.get_experiments():
+
         experiment.add_tag("rl-hyperparameters-optimisation-1")
         # Call the function that wraps the Neural Network code to start the experiment
 
@@ -716,5 +719,5 @@ def run_experiments():
 
 
 if __name__ == "__main__":
-    # run_experiments()
+    #run_experiments()
     run_single_experiment()
