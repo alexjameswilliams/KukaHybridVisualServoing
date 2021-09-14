@@ -402,37 +402,19 @@ def train_new_model(hyperparameters, experiment):
     # Evaluate the agent's policy once before training.
     avg_return = get_eval_metrics()["AverageReturn"]
 
-    # Render a video
-    video_episodes = 5
-    eih_video_filename = 'eih.mp4'
-    eth_video_filename = 'eth.mp4'
-    with imageio.get_writer(eih_video_filename, fps=60) as eih_video:
-        with imageio.get_writer(eth_video_filename, fps=60) as eth_video:
-            for _ in range(video_episodes):
-                time_step = eval_env.reset()
 
-                images = eval_env.get_images()
-                eih_video.append_data(images[0])
-                eth_video.append_data(images[1])
+          experiment.set_step(step)
+          metrics = get_eval_metrics()
+          returns.append(metrics["AverageReturn"])
+          log_eval_metrics(metrics)
 
-                while not time_step.is_last():
-                    action_step = eval_actor.policy.action(time_step)
-                    time_step = eval_env.step(action_step.action)
 
-                    images = eval_env.get_images()
-                    eih_video.append_data(images[0])
-                    eth_video.append_data(images[1])
+          video_file_name = record_video()
+          experiment.log_asset(video_file_name, step=None, overwrite=None, context=None, ftype='video', metadata=None)
 
-    embed_mp4(eih_video_filename)
-    embed_mp4(eth_video_filename)
 
-    date_time = datetime.now().strftime("%Y-%m-%d---%H-%M-%S")
-    video_name = (date_time + ".mp4")
-    # Combine videos into one side by side video
-    os.system(
-        "ffmpeg -i eih.mp4 -i eth.mp4 -filter_complex \"hstack,format=yuv420p\" -c:v libx264 -crf 18 " + video_name)
-
-    experiment.log_asset(video_name, step=None, overwrite=None, context=None, ftype='video', metadata=None)
+    video_file_name = record_video(eval_actor, eval_env, video_name = 'final')
+    experiment.log_asset(video_file_name, step=None, overwrite=None, context=None, ftype='video', metadata=None)
 
     # Closer reverb server before exiting
     rb_observer.close()
@@ -462,6 +444,41 @@ def embed_mp4(filename):
   </video>'''.format(b64.decode())
 
     return IPython.display.HTML(tag)
+
+# Render a video
+def record_video(actor, env, video_name=None):
+
+  video_episodes = 5
+  eih_video_filename = 'eih.mp4'
+  eth_video_filename = 'eth.mp4'
+  with imageio.get_writer(eih_video_filename, fps=60) as eih_video:
+      with imageio.get_writer(eth_video_filename, fps=60) as eth_video:
+          for _ in range(video_episodes):
+              time_step = env.reset()
+
+              images = env.get_images()
+              eih_video.append_data(images[0])
+              eth_video.append_data(images[1])
+
+              while not time_step.is_last():
+                  action_step = actor.policy.action(time_step)
+                  time_step = env.step(action_step.action)
+
+                  images = env.get_images()
+                  eih_video.append_data(images[0])
+                  eth_video.append_data(images[1])
+
+  embed_mp4(eih_video_filename)
+  embed_mp4(eth_video_filename)
+
+  if video_name is None:
+    video_name = datetime.now().strftime("%Y-%m-%d---%H-%M-%S")
+
+  video_name = (video_name + ".mp4")
+  # Combine videos into one side by side video
+  os.system("ffmpeg -i eih.mp4 -i eth.mp4 -filter_complex \"hstack,format=yuv420p\" -c:v libx264 -crf 18 " + video_name)
+
+  return video_name
 
 
 def run_single_experiment():
