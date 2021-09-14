@@ -419,6 +419,8 @@ def train_new_model(hyperparameters, experiment):
     # Closer reverb server before exiting
     rb_observer.close()
     reverb_server.stop()
+    collect_env.close()
+    eval_env.close()
 
     return avg_return
 
