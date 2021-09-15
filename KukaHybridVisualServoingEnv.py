@@ -225,10 +225,10 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         # Set up camera positioning
         camEyePos = [0, 0, 0.1]
-        distance = 1.3
+        distance = 1.35
         pitch = -65
-        yaw = 275
-        roll = 90
+        yaw = 0
+        roll = 0
         upAxisIndex = 2
         camInfo = p.getDebugVisualizerCamera()
         viewMat = p.computeViewMatrixFromYawPitchRoll(camEyePos, distance, yaw, pitch, roll, upAxisIndex)
