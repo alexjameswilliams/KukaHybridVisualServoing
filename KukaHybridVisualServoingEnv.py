@@ -126,10 +126,6 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._observation = self.getObservation()
         return ts.restart(observation=self._observation)
 
-    def close(self):
-        p.disconnect()
-
-
     @property
     # Returns the Kuka's current joint state including Position, Velocity,
     # reaction forces and applied motor torque
