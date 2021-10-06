@@ -14,9 +14,9 @@ KUKA_MIN_RANGE = .400               # approximation based on robot documentation
 KUKA_MAX_RANGE = .780               # approximation based on robot documentation
 KUKA_VELOCITY_LIMIT = 1.0           # Maximum velocity of robotic joints. If not lmiited then robot goes out of its joint limit
 MAX_REWARD_MAGNITUDE = 1.0          # Maximum magnitude of a positive or negative reward i.e. normalised to [-1,1]
-TIME_PENALTY = 0.05                 # Penalty applied per timestep if time reward function activated. todo decide if this should be a fraction of the number of timesteps instead
-POSITION_REWARD_CONSTANT = 0.4      # Maximum fraction of optimal reward that can be awarded for positional alignment if positional reward activated. Must be less than 0.5.
-ROTATION_REWARD_CONSTANT = 0.4      # Maximum fraction of optimal reward that can be awarded for rotational alignment if rotational reward activated. Must be less than 0.5.
+TIME_PENALTY_MAGNITUDE = 0.05                 # Penalty applied per timestep if time reward function activated. todo decide if this should be a fraction of the number of timesteps instead
+POSITION_REWARD_MAGNITUDE = 0.4      # Maximum fraction of optimal reward that can be awarded for positional alignment if positional reward activated. Must be less than 0.5.
+ROTATION_REWARD_MAGNITUDE = 0.4      # Maximum fraction of optimal reward that can be awarded for rotational alignment if rotational reward activated. Must be less than 0.5.
 
 SIMULATION_STEP_DELTA = 1. / 240.   # Time between each simulation step
 SIMULATION_STEPS_PER_TIMESTEP = 24  # Number of simulation steps in one algorithmic timestep
@@ -476,7 +476,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
             # 4) Return a fraction of maximum reward until within tolerance range
             max_positional_distance = (2 * KUKA_MAX_RANGE) - self.positional_tolerance
-            position_reward = POSITION_REWARD_CONSTANT * MAX_REWARD_MAGNITUDE
+            position_reward = POSITION_REWARD_MAGNITUDE * MAX_REWARD_MAGNITUDE
 
             # if within tolerance, reward maximum allowed
             if np.abs(distance) <= self.positional_tolerance:
@@ -489,7 +489,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
             # 5) Return up to 0.4 of maximum reward until within tolerance range
             max_rotational_distance = 180 - self.rotational_tolerance
-            rotation_reward = ROTATION_REWARD_CONSTANT * MAX_REWARD_MAGNITUDE
+            rotation_reward = ROTATION_REWARD_MAGNITUDE * MAX_REWARD_MAGNITUDE
 
             # if within tolerance, reward maximum allowed
             if np.abs(rotation) <= self.rotational_tolerance:
