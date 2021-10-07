@@ -28,10 +28,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Initialise Environment
     def __init__(self,
                  urdfRoot=pybullet_data.getDataPath(),
-                 actionRepeat=1,
-                 isEnableSelfCollision: bool = True,
                  renders: bool = False,
-                 isDiscrete: bool = False, #todo I could add functionality for this in
                  eih_input: bool = True,
                  seed: int = None,
                  eth_input: bool = True,
@@ -51,12 +48,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
                  normalise_observation=True): #todo add target behaviour parameters (shape, resolution, random etc.)
         self.max_steps = timesteps
         self._urdfRoot = urdfRoot
-        self._actionRepeat = actionRepeat
-        self._isEnableSelfCollision = isEnableSelfCollision
         self._observation = []
         self._timestep_count = 0
         self._renders = renders
-        self._isDiscrete = isDiscrete
         self._eih_input = eih_input
         self._eth_input = eth_input
         self._eth_channels = eth_channels
