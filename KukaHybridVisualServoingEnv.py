@@ -13,10 +13,16 @@ from tf_agents.trajectories import time_step as ts
 KUKA_MIN_RANGE = .400               # approximation based on robot documentation
 KUKA_MAX_RANGE = .780               # approximation based on robot documentation
 KUKA_VELOCITY_LIMIT = 1.0           # Maximum velocity of robotic joints. If not lmiited then robot goes out of its joint limit
-MAX_REWARD_MAGNITUDE = 1.0          # Maximum magnitude of a positive or negative reward i.e. normalised to [-1,1]
-TIME_PENALTY_MAGNITUDE = 0.05                 # Penalty applied per timestep if time reward function activated. todo decide if this should be a fraction of the number of timesteps instead
-POSITION_REWARD_MAGNITUDE = 0.4      # Maximum fraction of optimal reward that can be awarded for positional alignment if positional reward activated. Must be less than 0.5.
-ROTATION_REWARD_MAGNITUDE = 0.4      # Maximum fraction of optimal reward that can be awarded for rotational alignment if rotational reward activated. Must be less than 0.5.
+POSITIONAL_TOLERANCE = 0.001  # 1mm
+ROTATIONAL_TOLERANCE = 1.0  # 1 degree
+VERTICAL_DISTANCE = 0.05  # 5cm
+
+MAX_REWARD = 1.0                    # Maximum magnitude of a positive or negative reward i.e. normalised to [-1,1]
+TIME_PENALTY = 0.05                 # Penalty applied per timestep if time reward function activated. todo decide if this should be a fraction of the number of timesteps instead
+POSITION_REWARD = 0.4               # Maximum fraction of optimal reward that can be awarded for positional alignment if positional reward activated. Must be less than 0.5.
+ROTATION_REWARD = 0.4               # Maximum fraction of optimal reward that can be awarded for rotational alignment if rotational reward activated. Must be less than 0.5.
+
+
 
 SIMULATION_STEP_DELTA = 1. / 240.   # Time between each simulation step
 SIMULATION_STEPS_PER_TIMESTEP = 24  # Number of simulation steps in one algorithmic timestep
@@ -28,18 +34,20 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Initialise Environment
     def __init__(self,
                  urdfRoot=pybullet_data.getDataPath(),
-                 renders: bool = False,
+                 renders: bool = False,    #todo this probs needs adjusting
                  eih_input: bool = True,
                  seed: int = None,
                  eth_input: bool = True,
                  position_input: bool = True,
                  velocity_input: bool = True,
-                 eih_camera_resolution: int = 120,
-                 eth_camera_resolution: int = 120,
+                 eih_camera_resolution: int = 112,
+                 eth_camera_resolution: int = 112,
                  eth_channels: int = 3,
                  eih_channels: int = 3,
-                 timesteps: int = 50,
+                 timesteps: int = 20,
                  discount: float = 1.0,
+                 goal_positioning: str = 'fixed',
+                 target_position = None,
                  reward_goal=True,
                  reward_collision=True,
                  reward_time=True,
@@ -62,6 +70,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self._eih_camera_resolution: int = eih_camera_resolution
         self._eth_camera_resolution: int = eth_camera_resolution
         self.discount = discount
+        self.goal_positioning = goal_positioning
+        self.target_position = target_position
         self.reward_goal = reward_goal
         self.reward_collision = reward_collision
         self.reward_time = reward_time
@@ -70,12 +80,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         self.normalise_observation = normalise_observation
 
         #todo could set these in the constructor for curriculum learning experiments
-        self.positional_tolerance = 0.001  # 1mm
-        self.rotational_tolerance = 1.0  # 1 degree
-        self.vertical_distance = 0.05  # 5cm
 
-        self.goal_achieved = False
-        self.terminated = False
         self._p = p
         if self._renders:
             cid = p.connect(p.SHARED_MEMORY)
@@ -99,9 +104,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         p.disconnect()
 
     # Initialise Environment
+    #todo set number of joints / joint position + velocity limits as class variables to avoid constant fetch methods
     def _reset(self):
 
         self.goal_achieved = False
+        self.collision = False
         self.terminated = False
         p.resetSimulation()
         # p.setPhysicsEngineParameter(numSolverIterations=150)
@@ -361,11 +368,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Advance simulation and collect observation, reward, and termination data
     def _step(self, action):
 
-        self.action = action
         if self.terminated:
             # The last action ended the episode. Ignore the current action and start a new episode.
             return self.reset()
 
+        self.action = action
         # Set target position to move towards
         target_joint_position = self.normalisedAction2JointAngles(self.action)
         self.setKukaJointAngles(target_joint_position)
@@ -392,6 +399,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         if mode=='human':
             print('Timestep: ' + str(self._timestep_count))
             print('Goal Pos: ' + str(self.target_position))
+            print('Robot Target Pos = ' + str(self.target_position))
             print('End Effector Position: ' + str(self.effector_position))
             print('End Effector Orientation: ' + str(self.effector_orientation))
             print('Input Action: ' + str(self.action))
@@ -419,7 +427,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
     # Checks if a condition for termination has been met
     # Termination can be triggered by collision, goal achievement, or when the maximum number of steps have been reached
     def _termination(self):
-        if self.terminated or self.goal_achieved or self._timestep_count > self.max_steps:
+        if self.collision or self.goal_achieved or self._timestep_count > self.max_steps:
             self.terminated = True
             return True
         return False
@@ -442,7 +450,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # 2) Retrieve Target Position
         target_position, target_orientation = p.getBasePositionAndOrientation(self.target_id)
         target_position = np.asarray(target_position)
-        target_position[2] = target_position[2] + self.vertical_distance
+        target_position[2] = target_position[2] + VERTICAL_DISTANCE
 
         # 3) Calculate Euclidean distance between end effector and target
         distance = np.linalg.norm(target_position - np.asarray(self.effector_position))
@@ -459,9 +467,9 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         if reward_goal:
 
             # 5) Check if within dimensional tolerances, if true then goal achieved
-            if (np.abs(distance) <= self.positional_tolerance) and (np.abs(rotation) <= self.rotational_tolerance):
+            if (np.abs(distance) <= POSITIONAL_TOLERANCE) and (np.abs(rotation) <= ROTATIONAL_TOLERANCE):
                 print('Goal Achieved')
-                reward += MAX_REWARD_MAGNITUDE
+                reward += MAX_REWARD
                 self.goal_achieved = True
 
             # ? 6) Verify that target is in camera?
@@ -469,11 +477,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         if reward_position and not self.goal_achieved:
 
             # 4) Return a fraction of maximum reward until within tolerance range
-            max_positional_distance = (2 * KUKA_MAX_RANGE) - self.positional_tolerance
-            position_reward = POSITION_REWARD_MAGNITUDE * MAX_REWARD_MAGNITUDE
+            max_positional_distance = (2 * KUKA_MAX_RANGE) - POSITIONAL_TOLERANCE
+            position_reward = POSITION_REWARD * MAX_REWARD
 
             # if within tolerance, reward maximum allowed
-            if np.abs(distance) <= self.positional_tolerance:
+            if np.abs(distance) <= POSITIONAL_TOLERANCE:
                 reward = reward + position_reward
             # Otherwise, reward  a fraction depending on relative positional error
             else:
@@ -482,11 +490,11 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         if reward_rotation and not self.goal_achieved:
 
             # 5) Return up to 0.4 of maximum reward until within tolerance range
-            max_rotational_distance = 180 - self.rotational_tolerance
-            rotation_reward = ROTATION_REWARD_MAGNITUDE * MAX_REWARD_MAGNITUDE
+            max_rotational_distance = 180 - ROTATIONAL_TOLERANCE
+            rotation_reward = ROTATION_REWARD * MAX_REWARD
 
             # if within tolerance, reward maximum allowed
-            if np.abs(rotation) <= self.rotational_tolerance:
+            if np.abs(rotation) <= ROTATIONAL_TOLERANCE:
                 reward = reward + rotation_reward
             # Otherwise, reward  a fraction depending on relative rotational error
             else:
@@ -499,7 +507,7 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
         #if reward_time and self.terminated:
             # Method 2) Reduce maximum reward by an amount proportional to the number of timesteps
-            # reward = reward * ((MAX_REWARD_MAGNITUDE / self.max_steps) * self._timestep_count)
+            # reward = reward * ((MAX_REWARD / self.max_steps) * self._timestep_count)
 
         if reward_collision:
             # 1) Check if collision detected
@@ -507,8 +515,8 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
             if contact:
                 # 2) if detected then end simulation and return maximum penalty
                 print('Collision Detected')
-                reward = -MAX_REWARD_MAGNITUDE
-                self.terminated = True
+                reward = -MAX_REWARD
+                self.collision = True
 
         return reward
 
@@ -519,13 +527,13 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
 
 
     # Generate random coordinates for the episodic target and place as a flat urdf model in environment
-    def generateGoal(self, x=None, y=None, size=1):
+    def generateGoal(self, goal=None, size=1):
+
 
         # todo check x,y are valid
-        if x and y:
-            self.target_position = [x, y]
+        if goal:
+            self.target_position = goal
         else:
-            #todo link random numbers to random seed
             # Generate 4 random numbers to choose 2 for the x and y coordinates of the target
             # This is to avoid the robots base and ensure targets are within robot's reach
             ranges = np.random.uniform(KUKA_MIN_RANGE, KUKA_MAX_RANGE, 4)
@@ -545,9 +553,10 @@ class KukaHybridVisualServoingEnv(py_environment.PyEnvironment):
         # Place object at generated coordinates
         target_id = p.createMultiBody(
             baseVisualShapeIndex=visualShapeId,
-            basePosition=[target_x, target_y, 0.0001],
+            basePosition=[self.target_position[0], self.target_position[1], 0.0001],
             baseOrientation=p.getQuaternionFromEuler([np.deg2rad(90), 0, 0]))
 
+        #print('Goal Set at ' + str(self.target_position[0]) + ', ' + str(self.target_position[1]))
         return target_id
 
     # Load floor urdf file and place in environment
