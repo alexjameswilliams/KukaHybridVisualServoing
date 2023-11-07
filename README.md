@@ -7,4 +7,4 @@ An additional script for initialising and commencing training on the environment
 
 Please cite this thesis if you use this work in your projects:
 
-_A. Williams, “Real-Time Hybrid Visual Servoing of a Redundant Manipulator via Deep Reinforcement Learning,” MSc Thesis, Swansea University, Swansea, 2023. Available: https://cronfa.swan.ac.uk/Record/cronfa62598_
+_A. Williams, “Real-Time Hybrid Visual Servoing of a Redundant Manipulator via Deep Reinforcement Learning,” MSc Thesis, Swansea University, Swansea, 2021. Available: https://cronfa.swan.ac.uk/Record/cronfa62598_
