@@ -1,5 +1,5 @@
-# KukaHybridVisualServoing
-Customisable simulated reinforcement learning Environment for learning accurate manipulation over 2D surfaces with the KUKA LBR iiwa via a Hybrid Visual Servoing method.
+# A reinforcement learning environment for the Kuka LBR iiwa with Hybrid Visual Servoing Input
+A customisable simulated reinforcement learning Environment for learning accurate manipulation over 2D surfaces with the KUKA LBR iiwa via a Hybrid Visual Servoing method.
 The hybrid visual servoing approach includes eye-in-hand and eye-to-hand view inputs, as well as robotic position and velocity inputs.
 
 Simulation is developed in PyBullet, with TFAgents used as the wrapper for the environment logic for reinforcement learning algorithms.
