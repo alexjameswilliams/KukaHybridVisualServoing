@@ -1,5 +1,8 @@
 # KukaHybridVisualServoing
-Reinforcement Learning Environment for learning accurate manipulation over 2D surfaces with the KUKA LBR iiwa via a Hybrid Visual Servoing method
+Simulated reinforcement learning Environment for learning accurate manipulation over 2D surfaces with the KUKA LBR iiwa via a Hybrid Visual Servoing method.
+
+Simulation is developed in PyBullet, with TFAgents used as the wrapper for the environment logic for reinforcement learning algorithms.
+An additional script for initialising and commencing training on the environment is provided to help users get started.
 
 
 Please cite this thesis if you use this work in your projects.
